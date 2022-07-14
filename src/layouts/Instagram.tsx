@@ -64,14 +64,14 @@ const Instagram = () => {
           <Stats.Slider
             name="Average Speed"
             value="217.777"
-            subtext="Kmh"
+            subtext="kmh"
             rank={3}
             totalParticipants={20}
           />
           <Stats.Slider
             name="Fastest Speed Trap"
             value="325.5"
-            subtext="Kmh"
+            subtext="kmh"
             rank={2}
             totalParticipants={20}
           />
