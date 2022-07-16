@@ -22,4 +22,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Python
 venv
+
+### JupyterNotebooks ###
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IPython
+profile_default/
+ipython_config.py
