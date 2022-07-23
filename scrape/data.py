@@ -114,3 +114,35 @@ def get_one_from_df(df: pd.DataFrame, query: str) -> pd.Series:
     if len(selected) != 1:
         raise Exception(f"expected only 1 result from the query, got {len(selected)}")
     return selected.iloc[0]
+
+
+def df_timedelta_to_string(row: pd.Series):
+    for index, value in row.iteritems():
+        if isinstance(value, datetime.timedelta):
+            values = str(value).split(" ")
+            if len(values) == 0:
+                return ""
+            value = values[-1]
+            parts = value.split(".")
+
+            if len(parts) == 0:
+                return ""
+
+            hours, minutes, seconds = parts[0].split(":")
+            ms = None
+            if len(parts) > 1:
+                ms = parts[1]
+
+            value = str(seconds)
+            if minutes != "00" or minutes == "00" and hours != "00":
+                value = f"{minutes}:{value}"
+            if hours != "00":
+                hours = hours.lstrip("0")
+                value = f"{hours}:{value}"
+
+            if ms:
+                value = f"{value}.{ms[:3]}"
+            row.at[index] = value
+        elif isinstance(value, pd.Timedelta):
+            print("hi")
+    return row.astype(str)

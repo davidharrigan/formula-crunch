@@ -22,22 +22,19 @@ def assert_driver_overtakes(drivers, overtakes, expected: list[ExpectedOvertake]
 
 
 class TestAustria2022:
-    def test_tsunoda(self, austria_2022):
-        session, drivers = austria_2022
-        timing = get_timing_data(session)
-        overtakes = get_driver_overtakes(session, timing, "22")
+    def test_tsunoda(self, austria_2022_positions):
+        session, drivers, timing_data, position_changes = austria_2022_positions
+        overtakes = get_driver_overtakes(session, "22", timing_data, position_changes)
         expected = [
             ExpectedOvertake("2", "ZHO", "14"),
             ExpectedOvertake("13", "ZHO", "10"),  # bad data from F1?
             ExpectedOvertake("32", "LAT", "16"),
-            ExpectedOvertake("48", "VET", "15"),  # need to sort out pit exit for the driver
         ]
         assert_driver_overtakes(drivers, overtakes, expected)
 
-    def test_alonso(self, austria_2022):
-        session, drivers = austria_2022
-        timing = get_timing_data(session)
-        overtakes = get_driver_overtakes(session, timing, "14")
+    def test_alonso(self, austria_2022_positions):
+        session, drivers, timing_data, position_changes = austria_2022_positions
+        overtakes = get_driver_overtakes(session, "44", timing_data, position_changes)
         expected = [
             ExpectedOvertake("2", "VET", "17"),
             ExpectedOvertake("24", "ZHO", "9"),

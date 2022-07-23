@@ -35,10 +35,10 @@ def get_lap_start_end_time(lap: ff1.core.Lap) -> tuple[pd.Timedelta, pd.Timedelt
     """
     Returns start and end time of the given lap.
     """
-    lap_end = lap["Time"]
     lap_time = lap["LapTime"]
+    lap_start = lap["LapStartTime"]
+    lap_end = lap_start + lap_time
 
-    lap_start = lap_end - lap_time
     # replace null time with 0
     if pd.isnull(lap_start):
         lap_start = pd.Timedelta(0, "s")
@@ -67,6 +67,7 @@ def add_lap_number_to_timing_data(laps: ff1.core.Laps, timing_data: pd.DataFrame
     """
     Adds LapNumber column to the timing_data.
     """
+    laps = laps.reset_index(drop=True)
     if len(laps["DriverNumber"].unique()) != 1:
         raise Exception("Expected only 1 driver in given laps")
 
@@ -78,7 +79,7 @@ def add_lap_number_to_timing_data(laps: ff1.core.Laps, timing_data: pd.DataFrame
     for idx, t in laps.iterlaps():
         lap_number = str(idx + 1)
         lap_start, lap_end = get_lap_start_end_time(t)
-        matching = df[(df["Time"] >= lap_start) & (df["Time"] < lap_end)]
+        matching = df[(lap_start <= df["Time"]) & (lap_end > df["Time"])]
         for ii, m in matching.iterrows():
             df.at[ii, "LapNumber"] = lap_number
 
@@ -89,10 +90,12 @@ def get_lap_at_time(time: pd.Timedelta, laps: ff1.core.Laps) -> ff1.core.Lap | N
     """
     Returns ff1.core.Lap at the given time
     """
+    driver_numbers = laps["DriverNumber"].unique()
+    if len(driver_numbers) != 1:
+        raise Exception("Expected only 1 driver in the given laps")
+
     # filter laps by time. There should only be one lap for the given time.
-    # lap end = time
-    # lap start = time - lap time
-    laps = laps[(laps["Time"] >= time) & (laps["Time"] - laps["LapTime"] <= time)]
+    laps = laps[(laps["LapStartTime"] <= time) & (laps["LapStartTime"] + laps["LapTime"] > time)]
     if len(laps) > 1:
         raise Exception(f"Expected at most 1 lap")
 
@@ -106,9 +109,24 @@ def get_lap_at_time(time: pd.Timedelta, laps: ff1.core.Laps) -> ff1.core.Lap | N
     return lap
 
 
-def get_driver_at_position(time: pd.Timedelta, position: str, timing_data: pd.DataFrame) -> str:
+def get_driver_at_position(time: pd.Timedelta, position: int, timing_data: pd.DataFrame) -> str:
     candidates = timing_data[(timing_data["Position"] == position) & (timing_data["Time"] <= time)]
     if len(candidates) == 0:
         return ""
     idxmax = candidates["Time"].idxmax()
     return timing_data.iloc[idxmax]["DriverNumber"]
+
+
+def merge_leader_lap(
+    target: pd.DataFrame, laps: ff1.core.Laps, timing_data: pd.DataFrame, target_time_column="Time"
+) -> pd.DataFrame:
+    target = target.copy()
+    target["LapLeader"] = np.nan
+    for idx, t in target.iterrows():
+        time = t["Time"]
+        leader = get_driver_at_position(time, 1, timing_data)
+        if leader:
+            leader_lap = get_lap_at_time(time, laps.pick_driver(leader))
+            if leader_lap is not None:
+                target.at[idx, "LapLeader"] = str(leader_lap.LapNumber)
+    return target

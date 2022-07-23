@@ -33,7 +33,10 @@ def get_overtakes(session: ff1.core.Session) -> pd.DataFrame:
 
 
 def get_driver_overtakes(
-    session: ff1.core.Session, timing: pd.DataFrame, driver_number: str
+    session: ff1.core.Session,
+    driver_number: str,
+    timing: pd.DataFrame,
+    position_changes: pd.DataFrame,
 ) -> pd.DataFrame:
     """
     Returns overtakes performed by the given driver.
@@ -67,29 +70,28 @@ def get_driver_overtakes(
     - Multiple overtakes that occur during the same lap against the same driver
         competing for the same position.
     """
-    time_ahead_tolerance = pd.Timedelta(5, "s")
+    pit_exit_tolerance = pd.Timedelta(3, "s")
+    time_ahead_tolerance = pd.Timedelta(1, "s")
     off_track_tolerance = pd.Timedelta(2, "s")
     maybe_pit_tolerance = pd.Timedelta(10, "s")
 
     max_laps = session.laps["LapNumber"].max()
+
+    driver_laps = session.laps.pick_driver(driver_number).reset_index(drop=True)
     driver_timing = timing.query(f'DriverNumber == "{driver_number}"').reset_index(drop=True)
-    laps = session.laps.pick_driver(driver_number).reset_index(drop=True)
-
-    # possible_overtakes = __get_possible_overtakes(laps, timing)
-    position_changes = __get_position_changes(laps, timing)
-
-    # TODO: optimize this
-    # get position changes for everyone else
+    driver_position_changes = position_changes.query(
+        f'DriverNumber == "{driver_number}"'
+    ).reset_index(drop=True)
 
     # Add additional information to filter result at the end
-    df = position_changes.copy()
+    df = driver_position_changes.copy()
     df = df[df["PositionGained"] >= 1]
     df["PassingStatus"] = np.nan
 
-    for idx, lap in laps.iterlaps():
+    for idx, lap in driver_laps.iterlaps():
         lap_number = lap["LapNumber"]
 
-        pos_changes_lap = position_changes.query(
+        pos_changes_lap = driver_position_changes.query(
             f"LapNumber == '{lap_number}' and PositionGained >= 1"
         )
         if pos_changes_lap.empty:
@@ -116,29 +118,18 @@ def get_driver_overtakes(
             # be happening and they are running side by side trading posistions.  In this
             # case, make sure the current position persisted for at least the threashold
             # amount and update the status accordingly.
-            # TODO: we'll need to make sure this works for when a car overtakes multiple cars in 1 corner
+            # TODO: need to make sure this works for when a car overtakes multiple cars in 1 corner
             # or when multiple cars are trading positiions
-            if oidx != 0 and oidx < len(position_changes) - 2:
+            if oidx != 0 and oidx < len(driver_position_changes) - 2:
                 # Position improved, but maybe lost it back too quickly.
                 next_position, next_time, next_pos_driver_ahead = (
-                    position_changes[["Position", "Time", "DriverNumberAhead"]].iloc[oidx + 1].array
+                    driver_position_changes[["Position", "Time", "DriverNumberAhead"]]
+                    .iloc[oidx + 1]
+                    .array
                 )
-                if (
-                    position < next_position
-                    and next_time - time < time_ahead_tolerance
-                    and next_pos_driver_ahead == passed_driver_number
-                ):
+                if position < next_position and next_time - time < time_ahead_tolerance:
                     df.at[oidx, "PassingStatus"] = "PositionLostTooQuickly"
                     continue
-
-                # TODO: position improved, but just regaining position within tolerance.
-                # prev_position, prev_time = (
-                #     position_changes[["Position", "Time"]].iloc[oidx - 1].array
-                # )
-                # if next_position and prev_position == next_position:
-                #     if next_time - prev_time < time_ahead_tolerance:
-                #         df.at[oidx, "PassingStatus"] = "PositionRegainedWithinTolerance"
-                #         continue
 
             passed_driver_laps = session.laps.pick_driver(passed_driver_number)
             passed_driver_lap = get_lap_at_time(time, passed_driver_laps)
@@ -151,7 +142,23 @@ def get_driver_overtakes(
                 else:
                     df.at[oidx, "PassingStatus"] = "Unknown"
 
-            # TODO: ensure the "passed driver" improved position
+            elif __is_driver_overtaken(
+                position_changes,
+                lap_number,
+                driver_number,
+                passed_driver_number,
+                position - 1,
+            ):
+                df.at[oidx, "PassingStatus"] = "NoMatch"
+
+            # Check if the current driver is in pit
+            # elif is_time_during_pit(
+            #    time,
+            #    driver_laps,
+            #    lap_number_hint=lap_number,
+            #    pit_in_tolerance=pit_exit_tolerance,
+            # ):
+            #    df.at[oidx, "PassingStatus"] = "MaybeDriverPit"
 
             # Check if the passed driver is in pit
             elif is_time_during_pit(
@@ -208,50 +215,33 @@ def get_driver_overtakes(
     return df.reset_index(drop=True)
 
 
-def __get_possible_overtakes(laps: ff1.core.Laps, timing_data: pd.DataFrame) -> pd.DataFrame:
+def __is_driver_overtaken(
+    position_changes: pd.DataFrame,
+    lap_number: str,
+    overtaking_driver_number: str,
+    passed_driver_number: str,
+    passed_driver_position: str,
+) -> bool:
+    query = f"""
+        LapNumber == "{lap_number}" and 
+        DriverNumberAhead == "{overtaking_driver_number}" and
+        DriverNumber == "{passed_driver_number}" and
+        Position == "{passed_driver_position}"
     """
-    Returns a DataFrame of possible overtakes for a driver. Possible overtakes
-    are whenever a position improvement occurs and the driver must maintan
-    position for the given threashold amount.
-
-    This does not account for pit stops, retirements, etc.
-
-    The resultng DataFrame is a subset of the given timing_data with LapTime and
-    PreviousPosition columns.
-    """
-    driver_numbers = laps["DriverNumber"].unique()
-    if len(driver_numbers) != 1:
-        raise Exception("Expected only 1 driver in the given laps")
-
-    # gather necessary data
-    driver_number = driver_numbers[0]
-    laps = laps.reset_index(drop=True)
-    position_changes = __get_position_changes(laps, timing_data)
-
-    possible_overtakes = []
-    for idx, t in position_changes.iterrows():
-        if idx == 0:
-            continue
-
-        cur_lap = t["LapNumber"]
-        cur_position = t["Position"]
-        cur_time = t["Time"]
-
-        if pd.isnull(cur_lap):
-            continue
-
-        # only care about if this position improved from the previous position
-        prev_position = position_changes["Position"].iloc[idx - 1]
-        if prev_position < cur_position:
-            continue
-
-        t_copy = t.copy()
-        possible_overtakes.append(t_copy)
-
-    return pd.DataFrame(data=possible_overtakes).reset_index(drop=True)
+    check = position_changes.query(query.replace("\n", ""))
+    return not check.empty
 
 
 def __get_position_changes(laps: ff1.core.Laps, timing_data: pd.DataFrame) -> pd.DataFrame:
+    position_changes = []
+    for driver in laps["DriverNumber"].unique():
+        position_changes.append(
+            __get_driver_position_changes(laps.pick_driver(driver), timing_data)
+        )
+    return pd.concat(position_changes).reset_index(drop=True)
+
+
+def __get_driver_position_changes(laps: ff1.core.Laps, timing_data: pd.DataFrame) -> pd.DataFrame:
     """
     Returns a subset of the given timing_data for when position changes occur
 
