@@ -61,3 +61,22 @@ def add_driver_id_or_number(target: pd.DataFrame, source: pd.DataFrame) -> pd.Da
     target = target.merge(source[["DriverNumber", "DriverID"]], on=on, how="left")
     target = target[cols.insert(idx, added)]
     return target
+
+
+def add_driver_code(
+    target: pd.DataFrame, source: pd.DataFrame, prefix="", suffix=""
+) -> pd.DataFrame:
+    """
+    Add Code column
+    """
+    col_number = prefix + "DriverNumber" + suffix
+    col_code = prefix + "Code" + suffix
+    target[col_number][:1]
+    target = target.merge(
+        source[["DriverNumber", "Code"]].rename(
+            columns={"DriverNumber": col_number, "Code": col_code}
+        ),
+        on=col_number,
+        how="left",
+    )
+    return target

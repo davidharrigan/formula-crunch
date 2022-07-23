@@ -78,7 +78,7 @@ def add_lap_number_to_timing_data(laps: ff1.core.Laps, timing_data: pd.DataFrame
     for idx, t in laps.iterlaps():
         lap_number = str(idx + 1)
         lap_start, lap_end = get_lap_start_end_time(t)
-        matching = df[(df["Time"] >= lap_start) & (df["Time"] <= lap_end)]
+        matching = df[(df["Time"] >= lap_start) & (df["Time"] < lap_end)]
         for ii, m in matching.iterrows():
             df.at[ii, "LapNumber"] = lap_number
 
@@ -104,3 +104,11 @@ def get_lap_at_time(time: pd.Timedelta, laps: ff1.core.Laps) -> ff1.core.Lap | N
     if isinstance(lap, pd.DataFrame):
         lap = lap.iloc[0]
     return lap
+
+
+def get_driver_at_position(time: pd.Timedelta, position: str, timing_data: pd.DataFrame) -> str:
+    candidates = timing_data[(timing_data["Position"] == position) & (timing_data["Time"] <= time)]
+    if len(candidates) == 0:
+        return ""
+    idxmax = candidates["Time"].idxmax()
+    return timing_data.iloc[idxmax]["DriverNumber"]
