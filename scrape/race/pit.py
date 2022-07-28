@@ -60,7 +60,9 @@ def get_pit_summary(
                 second=int(parts[2]),
             )
             + tz_offset
-        )  # TODO: ergast API returns pit time as local time :(
+        )
+        # TODO: ergast API returns pit time as local time :(
+        # TODO: can get GMT offset from livetiming.formula1.com SessionInfo
         pit_time = pit_date - session.t0_date
         data["PitDate"] = pit_date
         data["Time"] = pit_time  # Time is ff1 SessionStartTime

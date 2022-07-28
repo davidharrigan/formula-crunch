@@ -13,58 +13,58 @@ class DataMapping:
 
     def transform(self, x):
         if self.dtype == str:
-            return self.__str(x)
+            return self.to_str(x)
         if self.dtype == float:
-            return self.__float(x)
+            return self.to_float(x)
         if self.dtype == int:
-            return self.__int(x)
+            return self.to_int(x)
         if self.dtype == bool:
-            return self.__bool(x)
+            return self.to_bool(x)
         if self.dtype == datetime.date:
-            return self.__date(x)
+            return self.to_date(x)
         if self.dtype == datetime.timedelta:
-            return self.__timedelta(x)
+            return self.to_timedelta(x)
         if self.dtype == datetime.datetime:
-            return self.__datetime(x)
+            return self.to_datetime(x)
         raise Exception("unsupported dtype")
 
     @staticmethod
-    def __str(x):
+    def to_str(x):
         return str(x)
 
     @staticmethod
-    def __float(x):
+    def to_float(x):
         if not x:
             return np.nan
         return np.float64(x)
 
     @staticmethod
-    def __int(x):
+    def to_int(x):
         if not x:
             return np.nan
         return np.int64(x)
 
     @staticmethod
-    def __bool(x):
+    def to_bool(x):
         if x:
-            return pd.Series(True, dtype=bool)
-        return pd.Series(False, dtype=bool)
+            return True
+        return False
 
     @staticmethod
-    def __date(x):
+    def to_date(x):
         if not x:
             return pd.NaT
         # assumes iso format
         return datetime.date.fromisoformat(x)
 
     @staticmethod
-    def __timedelta(x):
+    def to_timedelta(x):
         if not x:
             return pd.NaT
         return ff1.utils.to_timedelta(x)
 
     @staticmethod
-    def __datetime(x):
+    def to_datetime(x):
         if not x:
             return pd.NaT
         return ff1.utils.to_datetime(x)
