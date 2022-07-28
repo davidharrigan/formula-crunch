@@ -1,10 +1,12 @@
 import pandas as pd
 import fastf1 as ff1
 
+from scrape.core import Session
+
 __all__ = ["get_race"]
 
 
-def get_race(session: ff1.core.Session) -> pd.Series:
+def get_race(session: Session) -> pd.Series:
     event = session.event
 
     # find session event date

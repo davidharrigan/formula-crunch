@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from scrape import model
 from scrape.race import get_lap_summary, get_overtakes, get_pit_summary, get_race
-from scrape.core import get_drivers, get_circuits, add_driver_id_or_number
+from scrape.core import get_session, get_drivers, get_circuits, add_driver_id_or_number
 from scrape.data import to_db_fields, get_one_from_df
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +33,7 @@ def scrape_circuits(tx: Session, year: int):
 
 
 def scrape_race_data(tx: Session, event, year):
-    session = ff1.get_session(year, event, "Race")
+    session = get_session(year, event, "Race")
     session.load(telemetry=True, laps=True, weather=False)
 
     drivers = get_drivers(year).query("DriverNumber == @session.drivers")

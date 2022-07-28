@@ -1,10 +1,12 @@
 import fastf1 as ff1
 import pandas as pd
 
+from scrape.core import Session
+
 __all__ = ["get_lap_summary"]
 
 
-def get_lap_summary(session: ff1.core.Session) -> pd.DataFrame:
+def get_lap_summary(session: Session) -> pd.DataFrame:
     """
     Return a DataFrame containing:
         fastest lap time

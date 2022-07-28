@@ -2,9 +2,7 @@ import fastf1 as ff1
 import pandas as pd
 import numpy as np
 
-
-class TimingData(pd.DataFrame):
-    pass
+from scrape.core import Session
 
 
 def __interval_to_timedelta(x):
@@ -15,7 +13,7 @@ def __interval_to_timedelta(x):
         return ff1.utils.to_timedelta(x.lstrip("+"))
 
 
-def get_timing_data(session: ff1.core.Session) -> pd.DataFrame:
+def get_timing_data(session: Session) -> pd.DataFrame:
     """
     Return timing data.
     """
@@ -23,7 +21,7 @@ def get_timing_data(session: ff1.core.Session) -> pd.DataFrame:
     return timing.rename(columns={"Driver": "DriverNumber"})
 
 
-def get_driver_timing_data(session: ff1.core.Session, driver_number: str) -> pd.DataFrame:
+def get_driver_timing_data(session: Session, driver_number: str) -> pd.DataFrame:
     """
     Returns timing data for the given driver.
     """

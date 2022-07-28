@@ -7,6 +7,8 @@ import fastf1 as ff1
 
 from scrape.core.timing import Timing, get_timing_data
 
+__all__ = ["get_session", "Session"]
+
 
 def get_session(year, gp, identifier=None, *, force_ergast=False, event=None) -> Session:
     session = ff1.get_session(

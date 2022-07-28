@@ -11,11 +11,12 @@ from scrape.race.timing import (
     get_driver_at_position,
 )
 from scrape.race.pit import is_time_during_pit
+from scrape.core import Session
 
 __all__ = ["get_overtakes", "get_driver_overtakes"]
 
 
-def get_overtakes(session: ff1.core.Session) -> pd.DataFrame:
+def get_overtakes(session: Session) -> pd.DataFrame:
     """
     Returns overtakes that occurred during a session.
 
@@ -33,7 +34,7 @@ def get_overtakes(session: ff1.core.Session) -> pd.DataFrame:
 
 
 def get_driver_overtakes(
-    session: ff1.core.Session,
+    session: Session,
     driver_number: str,
     timing: pd.DataFrame,
     position_changes: pd.DataFrame,

@@ -3,12 +3,13 @@ import fastf1 as ff1
 import pandas as pd
 
 from scrape.data import DataMapping
+from scrape.core import Session
 
 __all__ = ["get_pit_summary"]
 
 
 def get_pit_summary(
-    session: ff1.core.Session, tz_offset=datetime.timedelta(0)
+    session: Session, tz_offset=datetime.timedelta(0)
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     mapping: dict[str, DataMapping] = {
         "driverId": DataMapping("DriverID", str),
