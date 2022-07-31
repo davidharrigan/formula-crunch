@@ -295,11 +295,20 @@ def get_lap_at_time(time: pd.Timedelta, laps: ff1.core.Laps) -> ff1.core.Lap | N
     return lap
 
 
-def is_in_pit(time: pd.Timedelta, timing: Timing) -> bool:
-    driver_numbers = timing["DriverNumber"].unique()
+def get_driver_at_position(session: Session, time: pd.Timedelta, position: int) -> str:
+    timing_data = session.timings
+    candidates = timing_data[(timing_data["Position"] == position) & (timing_data["Time"] <= time)]
+    if len(candidates) == 0:
+        return ""
+    idxmax = candidates["Time"].idxmax()
+    return timing_data.iloc[idxmax]["DriverNumber"]
+
+
+def is_in_pit(time: pd.Timedelta, timings: Timing) -> bool:
+    driver_numbers = timings["DriverNumber"].unique()
     if len(driver_numbers) != 1:
         raise Exception("Expected only 1 driver in the given timing")
 
-    closest_idx = timing[timing["Time"] >= time]["Time"].idxmin()
-    closest = timing.loc[closest_idx]
+    closest_idx = timings[timings["Time"] >= time]["Time"].idxmin()
+    closest = timings.loc[closest_idx]
     return closest["Status"] in ("PIT_IN", "PIT_OUT", "PIT_LANE")

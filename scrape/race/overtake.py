@@ -4,14 +4,6 @@ import fastf1 as ff1
 import pandas as pd
 import numpy as np
 
-from scrape.race.timing import (
-    get_timing_data,
-    add_lap_number_to_timing_data,
-    get_lap_start_end_time,
-    get_lap_at_time,
-    get_position_at_lap,
-    get_driver_at_position,
-)
 from scrape.race.pit import is_time_during_pit
 from scrape.core import Session, timing
 
@@ -108,7 +100,7 @@ def get_driver_overtakes(
 
 
 def __is_overtake(session, position, time, overtaker) -> (str, OvertakeStatus):
-    driver_against = get_driver_at_position(session, time, position + 1)
+    driver_against = timing.get_driver_at_position(session, time, position + 1)
 
     # 1. is not the first lap
     laps = session.laps.pick_driver(overtaker)
@@ -183,13 +175,13 @@ def __get_driver_position_changes(laps: ff1.core.Laps, timing_data: pd.DataFrame
         if position != last_changed_position:
             time = t["Time"]
 
-            lap = get_lap_at_time(time, laps)
+            lap = timing.get_lap_at_time(time, laps)
 
             delta = last_changed_position - position
             prev_position = position + delta
 
-            driver_ahead = get_driver_at_position(time, position - 1, timing_data)
-            driver_behind = get_driver_at_position(time, position + 1, timing_data)
+            driver_ahead = timing.get_driver_at_position(time, position - 1, timing_data)
+            driver_behind = timing.get_driver_at_position(time, position + 1, timing_data)
             driver_passed = np.nan
             if delta > 0:
                 driver_passed = driver_behind

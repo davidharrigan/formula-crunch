@@ -13,22 +13,6 @@ def __interval_to_timedelta(x):
         return ff1.utils.to_timedelta(x.lstrip("+"))
 
 
-def get_timing_data(session: Session) -> pd.DataFrame:
-    """
-    Return timing data.
-    """
-    _, timing = ff1.api.timing_data(session.api_path)
-    return timing.rename(columns={"Driver": "DriverNumber"})
-
-
-def get_driver_timing_data(session: Session, driver_number: str) -> pd.DataFrame:
-    """
-    Returns timing data for the given driver.
-    """
-    timing = get_timing_data(session)
-    return timing.query(f'Driver == "{driver_number}"').reset_index(drop=True)
-
-
 def get_lap_start_end_time(lap: ff1.core.Lap) -> tuple[pd.Timedelta, pd.Timedelta]:
     """
     Returns start and end time of the given lap.
@@ -82,38 +66,6 @@ def add_lap_number_to_timing_data(laps: ff1.core.Laps, timing_data: pd.DataFrame
             df.at[ii, "LapNumber"] = lap_number
 
     return df
-
-
-def get_lap_at_time(time: pd.Timedelta, laps: ff1.core.Laps) -> ff1.core.Lap | None:
-    """
-    Returns ff1.core.Lap at the given time
-    """
-    driver_numbers = laps["DriverNumber"].unique()
-    if len(driver_numbers) != 1:
-        raise Exception("Expected only 1 driver in the given laps")
-
-    # filter laps by time. There should only be one lap for the given time.
-    laps = laps[(laps["LapStartTime"] <= time) & (laps["LapStartTime"] + laps["LapTime"] > time)]
-    if len(laps) > 1:
-        raise Exception(f"Expected at most 1 lap")
-
-    if laps.empty:
-        return None
-
-    # Get Lap (Series) from Laps (DataFrame)
-    lap = laps.loc[laps["Time"].idxmin()]
-    if isinstance(lap, pd.DataFrame):
-        lap = lap.iloc[0]
-    return lap
-
-
-def get_driver_at_position(session: Session, time: pd.Timedelta, position: int) -> str:
-    timing_data = session.timings
-    candidates = timing_data[(timing_data["Position"] == position) & (timing_data["Time"] <= time)]
-    if len(candidates) == 0:
-        return ""
-    idxmax = candidates["Time"].idxmax()
-    return timing_data.iloc[idxmax]["DriverNumber"]
 
 
 def merge_leader_lap(
