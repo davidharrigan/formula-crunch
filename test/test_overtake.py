@@ -34,10 +34,9 @@ class TestAustria2022:
 
     def test_alonso(self, austria_2022_positions):
         session, drivers, timing_data, position_changes = austria_2022_positions
-        overtakes = get_driver_overtakes(session, "44", timing_data, position_changes)
+        overtakes = get_driver_overtakes(session, "14", timing_data, position_changes)
         expected = [
             ExpectedOvertake("2", "VET", "17"),
-            ExpectedOvertake("24", "ZHO", "9"),
             ExpectedOvertake("32", "LAT", "17"),
             ExpectedOvertake("33", "TSU", "16"),
             ExpectedOvertake("40", "STR", "13"),

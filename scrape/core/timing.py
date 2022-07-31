@@ -7,6 +7,8 @@ import pandas as pd
 
 from scrape.data import DataMapping
 
+__all__ = ["get_lap_at_time", "is_in_pit"]
+
 
 EMPTY_STREAM = {
     "Time": pd.NaT,
@@ -64,7 +66,6 @@ def get_timing_data(path, response=None, livedata=None) -> pd.DataFrame:
             timing_data[key].extend(drv_timing_data[key])
 
     df = pd.DataFrame(timing_data)
-    df = df[~df["LapNumber"].isnull()]
     return df
 
 
@@ -119,6 +120,11 @@ def timing_data_driver(driver_raw, empty_vals, drv):
         if val := recursive_dict_get(resp, "NumberOfLaps"):
             drv_data["LapNumber"][i] = DataMapping.to_str(int(val) + 1)
             new_entry = True
+
+        if "InPit" in resp:  # sometimes we don't get PitOut
+            if not resp["InPit"]:
+                drv_data["PitOut"][i] = DataMapping.to_bool(True)
+                new_entry = True
 
         if val := recursive_dict_get(resp, "IntervalToPositionAhead", "Value"):
             drv_data["IntervalToPositionAhead"][i] = DataMapping.to_str(val)
@@ -244,3 +250,56 @@ class Timing(pd.DataFrame):
     def base_class_view(self):
         """For a nicer debugging experience; can view DataFrame through this property in various IDEs"""
         return pd.DataFrame(self)
+
+    def pick_driver(self, identifier):
+        """Return all timing of a specific driver in self based on the driver's
+        three letters identifier or based on the driver number ::
+
+            perez_timings = timings.pick_driver('PER')
+            bottas_timings = timings.pick_driver(77)
+            kimi_timings = timings.pick_driver('RAI')
+
+        Args:
+            identifier (str or int): Driver abbreviation or number
+
+        Returns:
+            instance of :class:`Timing`
+        """
+        identifier = str(identifier)
+        if identifier.isdigit():
+            return self[self["DriverNumber"] == identifier]
+        else:
+            return self[self["Driver"] == identifier]
+
+
+def get_lap_at_time(time: pd.Timedelta, laps: ff1.core.Laps) -> ff1.core.Lap | None:
+    """
+    Returns ff1.core.Lap at the given time
+    """
+    driver_numbers = laps["DriverNumber"].unique()
+    if len(driver_numbers) != 1:
+        raise Exception("Expected only 1 driver in the given laps")
+
+    # filter laps by time. There should only be one lap for the given time.
+    laps = laps[(time >= laps["LapStartTime"]) & (time < (laps["LapStartTime"] + laps["LapTime"]))]
+    if len(laps) > 1:
+        raise Exception(f"Expected at most 1 lap")
+
+    if laps.empty:
+        return None
+
+    # Get Lap (Series) from Laps (DataFrame)
+    lap = laps.loc[laps["Time"].idxmin()]
+    if isinstance(lap, pd.DataFrame):
+        lap = lap.iloc[0]
+    return lap
+
+
+def is_in_pit(time: pd.Timedelta, timing: Timing) -> bool:
+    driver_numbers = timing["DriverNumber"].unique()
+    if len(driver_numbers) != 1:
+        raise Exception("Expected only 1 driver in the given timing")
+
+    closest_idx = timing[timing["Time"] >= time]["Time"].idxmin()
+    closest = timing.loc[closest_idx]
+    return closest["Status"] in ("PIT_IN", "PIT_OUT", "PIT_LANE")

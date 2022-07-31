@@ -107,7 +107,8 @@ def get_lap_at_time(time: pd.Timedelta, laps: ff1.core.Laps) -> ff1.core.Lap | N
     return lap
 
 
-def get_driver_at_position(time: pd.Timedelta, position: int, timing_data: pd.DataFrame) -> str:
+def get_driver_at_position(session: Session, time: pd.Timedelta, position: int) -> str:
+    timing_data = session.timings
     candidates = timing_data[(timing_data["Position"] == position) & (timing_data["Time"] <= time)]
     if len(candidates) == 0:
         return ""

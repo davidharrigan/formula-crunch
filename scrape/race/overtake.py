@@ -1,3 +1,5 @@
+from enum import Enum, auto
+
 import fastf1 as ff1
 import pandas as pd
 import numpy as np
@@ -11,235 +13,151 @@ from scrape.race.timing import (
     get_driver_at_position,
 )
 from scrape.race.pit import is_time_during_pit
-from scrape.core import Session
+from scrape.core import Session, timing
 
 __all__ = ["get_overtakes", "get_driver_overtakes"]
+
+
+class OvertakeStatus(Enum):
+    OK = auto()
+
+    # There were multiple overtakes against the same driver in the same lap.
+    DUPLICATE = auto()
+
+    # Driver against is in pit
+    PIT = auto()
+
+    # No lap data when overtake occurred
+    NO_LAP = auto()
+
+    # Overtake happened on the first lap
+    FIRST_LAP = auto()
+
+    # No position data available to determine on/off track status.
+    NO_POSITION_DATA = auto()
+
+    # Driver against is off track
+    OFF_TRACK = auto()
+
+    # Driver against may be off track (driving slower than 30km/h)
+    MAYBE_OFF_TRACK = auto()
+
+    # Position was lost too quickly (within 3 seconds)
+    LOST_TOO_QUICK = auto()
+
+    # No lap data for the passed driver when overtake occurred. This driver may have retired.
+    NO_LAP_OTHER = auto()
+
+    # Passed driver is still in their first lap
+    FIRST_LAP_OTHER = auto()
 
 
 def get_overtakes(session: Session) -> pd.DataFrame:
     """
     Returns overtakes that occurred during a session.
-
-    TODO:
-    Pit data from the fastf1 library currently isn't very accurate. To make it a
-    little more accurate, the raw timing data should be examined.
-    SectorSegmentStatus 2064 can be used to determine when a driver is entering
-    the pit lane. More information on this in notebooks/raw_timing_data.ipynb
     """
     dfs = []
-    timing = get_timing_data(session)
     for driver in session.drivers:
-        dfs.append(get_driver_overtakes(session, timing, driver))
+        dfs.append(get_driver_overtakes(session, driver))
     return pd.concat(dfs).reset_index(drop=True)
 
 
 def get_driver_overtakes(
     session: Session,
     driver_number: str,
-    timing: pd.DataFrame,
-    position_changes: pd.DataFrame,
 ) -> pd.DataFrame:
     """
     Returns overtakes performed by the given driver.
-
-    The following columns are present in the resulting DataFrame:
-    - DriverNumber
-    - LapNumber
-    - Position
-    - PositionBefore
-    - PassedDriverNumber
-    - PassingStatus
-    - GapToLeader
-    - IntervalToPositionAhead
-
-    PassingStatus is populated for position improvements that match the
-    following criteria and should be excluded from the result:
-    - Overtakes performed during lap 1.
-    - Position that is not maintained for at least 5 seconds.
-    - Driver is overtaken, and retakes position back within 5 seconds.
-        TODO: maybe maintain position at least until last sector?
-    - The driver must be ahead of the passsed driver at the end of the lap.
-    - Passing driver who retired on circuit.
-    - Passing that occurs during a pit window
-    - Due to the limitation of data from FastF1, laps where pit stops occur are
-        considered inaccurate and are not counted.
-        TODO: get sector segment status from raw timing data.
-    - Cars that have been lapped.
-    - Cars that are off track.
-    - Cars driving slower than 30Km/h are considered "MaybeOffTrack" and are not
-        counted.
-    - Multiple overtakes that occur during the same lap against the same driver
-        competing for the same position.
     """
-    pit_exit_tolerance = pd.Timedelta(3, "s")
-    time_ahead_tolerance = pd.Timedelta(1, "s")
-    off_track_tolerance = pd.Timedelta(2, "s")
-    maybe_pit_tolerance = pd.Timedelta(10, "s")
+    timings = session.timings.pick_driver(driver_number)
 
-    max_laps = session.laps["LapNumber"].max()
-
-    driver_laps = session.laps.pick_driver(driver_number).reset_index(drop=True)
-    driver_timing = timing.query(f'DriverNumber == "{driver_number}"').reset_index(drop=True)
-    driver_position_changes = position_changes.query(
-        f'DriverNumber == "{driver_number}"'
-    ).reset_index(drop=True)
-
-    # Add additional information to filter result at the end
-    df = driver_position_changes.copy()
-    df = df[df["PositionGained"] >= 1]
-    df["PassingStatus"] = np.nan
-
-    for idx, lap in driver_laps.iterlaps():
-        lap_number = lap["LapNumber"]
-
-        pos_changes_lap = driver_position_changes.query(
-            f"LapNumber == '{lap_number}' and PositionGained >= 1"
-        )
-        if pos_changes_lap.empty:
+    last_position = timings.iloc[0]["Position"]
+    overtakes = []
+    for idx, row in timings.iterrows():
+        position = row["Position"]
+        if position == last_position:  # no improvement
+            continue
+        if position > last_position:
+            last_position = position
             continue
 
-        # lap end position
-        pos_end = pos_changes_lap.iloc[-1]["Position"]
+        last_position = position
+        time = row["Time"]
 
-        for oidx, pos_change in pos_changes_lap.iterrows():
-            time = pos_change["Time"]
-            position = pos_change["Position"]
-            position_before = pos_change["PositionBefore"]
-            passed_driver_number = pos_change["DriverNumberBehind"]
+        against, status = __is_overtake(session, position, time, driver_number)
+        overtakes.append(
+            {
+                "Time": time,
+                "LapNumber": row["LapNumber"],
+                "Position": position,
+                "Against": against,
+                "PassingStatus": status.name,
+            }
+        )
 
-            if not passed_driver_number:
-                continue
-
-            # First lap is not counted.
-            if lap_number == 1:
-                df.at[oidx, "PassingStatus"] = "FirstLap"
-                continue
-
-            # If the next position is the same as the previous position, no overtake may
-            # be happening and they are running side by side trading posistions.  In this
-            # case, make sure the current position persisted for at least the threashold
-            # amount and update the status accordingly.
-            # TODO: need to make sure this works for when a car overtakes multiple cars in 1 corner
-            # or when multiple cars are trading positiions
-            if oidx != 0 and oidx < len(driver_position_changes) - 2:
-                # Position improved, but maybe lost it back too quickly.
-                next_position, next_time, next_pos_driver_ahead = (
-                    driver_position_changes[["Position", "Time", "DriverNumberAhead"]]
-                    .iloc[oidx + 1]
-                    .array
-                )
-                if position < next_position and next_time - time < time_ahead_tolerance:
-                    df.at[oidx, "PassingStatus"] = "PositionLostTooQuickly"
-                    continue
-
-            passed_driver_laps = session.laps.pick_driver(passed_driver_number)
-            passed_driver_lap = get_lap_at_time(time, passed_driver_laps)
-
-            # This driver is likely retired, updated status accordingly
-            if passed_driver_lap is None:
-                pd_max_laps = passed_driver_laps["LapNumber"].max()
-                if pd_max_laps < max_laps:
-                    df.at[oidx, "PassingStatus"] = "Retired"
-                else:
-                    df.at[oidx, "PassingStatus"] = "Unknown"
-
-            elif __is_driver_overtaken(
-                position_changes,
-                lap_number,
-                driver_number,
-                passed_driver_number,
-                position - 1,
-            ):
-                df.at[oidx, "PassingStatus"] = "NoMatch"
-
-            # Check if the current driver is in pit
-            # elif is_time_during_pit(
-            #    time,
-            #    driver_laps,
-            #    lap_number_hint=lap_number,
-            #    pit_in_tolerance=pit_exit_tolerance,
-            # ):
-            #    df.at[oidx, "PassingStatus"] = "MaybeDriverPit"
-
-            # Check if the passed driver is in pit
-            elif is_time_during_pit(
-                time, passed_driver_laps, lap_number_hint=passed_driver_lap["LapNumber"]
-            ):
-                df.at[oidx, "PassingStatus"] = "Pit"
-
-            # The lap is considered not accurate if pit stop occurs (and other criteria)
-            # If not accurate, try checking pit window again with a very wide tolerance
-            elif not passed_driver_lap["IsAccurate"]:
-                if not (
-                    pd.isnull(passed_driver_lap["PitInTime"])
-                    and pd.isnull(passed_driver_lap["PitOutTime"])
-                ):
-                    if is_time_during_pit(
-                        time,
-                        passed_driver_laps,
-                        passed_driver_lap["LapNumber"],
-                        maybe_pit_tolerance,
-                        maybe_pit_tolerance,
-                    ):
-                        df.at[oidx, "PassingStatus"] = "MaybePit"
-                else:
-                    df.at[oidx, "PassingStatus"] = "NotAccurate"
-
-            # Ensure car is not lapped
-            elif passed_driver_lap["LapNumber"] < lap_number:
-                df.at[oidx, "PassingStatus"] = "Lapped"
-
-            # Check if the car is off track
-            else:
-                pos_data = passed_driver_lap.get_pos_data().slice_by_time(
-                    time - off_track_tolerance, time + off_track_tolerance
-                )
-                if pos_data.empty:
-                    df.at[oidx, "PassingStatus"] = "PositionDataUnavailable"
-                elif not pos_data[pos_data["Status"] == "OffTrack"].empty:
-                    df.at[oidx, "PassingStatus"] = "OffTrack"
-                else:
-                    # car maya have spun out or went into the gravel - check if the car is going very slow at this time
-                    car_data = passed_driver_lap.get_car_data().slice_by_time(
-                        time - off_track_tolerance, time + off_track_tolerance
-                    )
-                    if car_data["Speed"].mean() <= 30:
-                        df.at[oidx, "PassingStatus"] = "MaybeOffTrack"
+    df = pd.DataFrame(overtakes)
 
     # filter null lap numbers
     df = df[~df["LapNumber"].isnull()]
 
     # mark data where multiple overtakes occur within the same lap against the same driver
-    dup = df.duplicated(["LapNumber", "Position", "DriverNumberBehind"], keep="last")
-    df.loc[dup, "PassingStatus"] = "Duplicate"
+    dup = df.duplicated(["LapNumber", "Position", "Against"], keep="last")
+    df.loc[dup, "PassingStatus"] = OvertakeStatus.DUPLICATE.name
 
     return df.reset_index(drop=True)
 
 
-def __is_driver_overtaken(
-    position_changes: pd.DataFrame,
-    lap_number: str,
-    overtaking_driver_number: str,
-    passed_driver_number: str,
-    passed_driver_position: str,
-) -> bool:
-    query = f"""
-        LapNumber == "{lap_number}" and 
-        DriverNumberAhead == "{overtaking_driver_number}" and
-        DriverNumber == "{passed_driver_number}" and
-        Position == "{passed_driver_position}"
-    """
-    check = position_changes.query(query.replace("\n", ""))
-    return not check.empty
+def __is_overtake(session, position, time, overtaker) -> (str, OvertakeStatus):
+    driver_against = get_driver_at_position(session, time, position + 1)
 
+    # 1. is not the first lap
+    laps = session.laps.pick_driver(overtaker)
+    lap = timing.get_lap_at_time(time, laps)
+    if lap is None:
+        return driver_against, OvertakeStatus.NO_LAP
+    if lap["LapNumber"] == 1:
+        return driver_against, OvertakeStatus.FIRST_LAP
 
-def __get_position_changes(laps: ff1.core.Laps, timing_data: pd.DataFrame) -> pd.DataFrame:
-    position_changes = []
-    for driver in laps["DriverNumber"].unique():
-        position_changes.append(
-            __get_driver_position_changes(laps.pick_driver(driver), timing_data)
-        )
-    return pd.concat(position_changes).reset_index(drop=True)
+    overtaken_driver_laps = session.laps.pick_driver(driver_against)
+    overtaken_driver_lap = timing.get_lap_at_time(time, overtaken_driver_laps)
+    if overtaken_driver_lap is None:
+        return driver_against, OvertakeStatus.NO_LAP_OTHER
+    if overtaken_driver_lap["LapNumber"] == 1:
+        return driver_against, OvertakeStatus.FIRST_LAP_OTHER
+
+    # 2. overtaken driver is not pitted
+    overtaken_driver_timings = session.timings.pick_driver(driver_against)
+    if timing.is_in_pit(time, overtaken_driver_timings):
+        return driver_against, OvertakeStatus.PIT
+
+    # 3. position is maintained for 3 seconds
+    pos_maintained_tolerance = pd.Timedelta(3, "s")
+    timings = session.timings.pick_driver(overtaker)
+    positions_next_5_seconds = timings[
+        (timings["Time"] > time) & (timings["Time"] <= time + pos_maintained_tolerance)
+    ]
+    for _, row in positions_next_5_seconds.iterrows():
+        if row["Position"] > position:
+            return driver_against, OvertakeStatus.LOST_TOO_QUICK
+
+    # 4. overtaken driver is not off track
+    off_track_tolerance = pd.Timedelta(2, "s")
+    pos_data = overtaken_driver_lap.get_pos_data().slice_by_time(
+        time - off_track_tolerance, time + off_track_tolerance
+    )
+    if pos_data.empty:
+        return driver_against, OvertakeStatus.NO_POSITION_DATA
+    elif not pos_data[pos_data["Status"] == "OffTrack"].empty:
+        return driver_against, OvertakeStatus.OFF_TRACK
+
+    # 5. overtaken driver driving slower than 30km/h are considered maybe off track
+    car_data = overtaken_driver_lap.get_car_data().slice_by_time(
+        time - off_track_tolerance, time + off_track_tolerance
+    )
+    if car_data["Speed"].mean() <= 30:
+        return driver_against, OvertakeStatus.MAYBE_OFF_TRACK
+
+    return driver_against, OvertakeStatus.OK
 
 
 def __get_driver_position_changes(laps: ff1.core.Laps, timing_data: pd.DataFrame) -> pd.DataFrame:

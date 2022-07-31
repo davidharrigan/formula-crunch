@@ -24,7 +24,7 @@ class Session(ff1.core.Session):
         self._timing_data: Timing
 
     @property
-    def timing_data(self):
+    def timings(self):
         return self._get_property_warn_not_loaded("_timing_data")
 
     def load(
@@ -52,7 +52,14 @@ class Session(ff1.core.Session):
 
         last_pit_status = None
         cp = df.copy()
+        pit_ins = 0
+        pit_outs = 0
+        drv = None
         for idx, row in cp.iterrows():
+            if row["DriverNumber"] != drv:
+                drv = row["DriverNumber"]
+                pit_ins = 0
+                pit_outs = 0
             if row["LastSectorSegmentStatus"] == 2064:
                 set_status(idx, df, "PIT_LANE")
                 if last_pit_status == "PIT_OUT":
@@ -60,10 +67,12 @@ class Session(ff1.core.Session):
             elif row["PitIn"]:
                 set_status(idx, df, "PIT_IN")
                 last_pit_status = "PIT_IN"
+                pit_ins += 1
             elif row["PitOut"]:
                 set_status(idx, df, "PIT_OUT")
                 last_pit_status = "PIT_OUT"
-            elif last_pit_status in ("PIT_IN", "PIT_OUT"):
+                pit_outs += 1
+            elif pit_ins > 1 and last_pit_status in ("PIT_IN", "PIT_OUT"):
                 set_status(idx, df, "PIT_LANE")
 
         df = df[Timing._COLUMNS]
