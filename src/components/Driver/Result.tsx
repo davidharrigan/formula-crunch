@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getOrdinal } from "../../libs/ordinal";
 
 interface ResultProps {
@@ -35,9 +36,10 @@ const Result = (props: ResultProps) => {
       <div className="flex flex-row">
         {/* left column */}
         <div className="basis-1/2">
-          <img
+          <Image
             alt={props.name}
-            width="300px"
+            width={300}
+            height={300}
             src={require("../../assets/" + props.image)}
           />
         </div>

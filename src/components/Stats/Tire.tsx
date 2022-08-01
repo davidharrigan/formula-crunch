@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import SoftTire from "../../assets/tires/soft.svg";
 import MediumTire from "../../assets/tires/medium.svg";
 import HardTire from "../../assets/tires/hard.svg";
@@ -28,7 +30,7 @@ const Tire = ({ compound, laps }: TireProps) => {
   return (
     <div className="flex flex-col items-center gap-2">
       <div>
-        <img alt={altSrc.alt} width="90px" src={altSrc.src} />
+        <Image alt={altSrc.alt} width={90} height={90} src={altSrc.src} />
       </div>
       <div className="text-xl">{laps}</div>
     </div>
