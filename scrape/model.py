@@ -176,5 +176,30 @@ class Overtake(Base):
     id = Column(Integer, primary_key=True)
     driver_race_summary_id = Column(Integer, ForeignKey("driver_race_summary.id"))
 
+    time = Column(Interval)
     lap_number = Column(Integer)
+    position = Column(Integer)
     passed_driver_id = Column(String, ForeignKey("driver.driver_id"))
+    passing_status = Column(String)
+    passing_status_override = Column(String)
+    passing_status_override_reason = Column(String)
+
+    @classmethod
+    def get_or_create(cls, session: Session, **kwargs) -> PitStop:
+        ps = (
+            session.query(cls)
+            .filter_by(
+                driver_race_summary_id=kwargs["driver_race_summary_id"],
+                time=kwargs["time"],
+                lap_number=kwargs["lap_number"],
+                position=kwargs["position"],
+                passed_driver_id=kwargs["passed_driver_id"],
+                passing_status=kwargs["passing_status"],
+            )
+            .one_or_none()
+        )
+        if ps:
+            return ps
+        ps = cls(**kwargs)
+        session.add(ps)
+        return ps

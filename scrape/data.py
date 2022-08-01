@@ -105,6 +105,8 @@ def to_db_fields(data: pd.Series) -> dict:
         value = v
         if "numpy" in str(type(v)):
             value = value.item()
+        elif isinstance(v, pd.Timedelta):
+            value = v.to_pytimedelta()
         ret[camel_to_snake(k)] = value
     return ret
 

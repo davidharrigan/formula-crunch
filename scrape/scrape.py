@@ -6,7 +6,7 @@ import fastf1 as ff1
 from sqlalchemy.orm import Session
 
 from scrape import model
-from scrape.race import get_lap_summary, get_overtakes, get_pit_summary, get_race
+from scrape.race import get_lap_summary, get_driver_overtakes, get_pit_summary, get_race
 from scrape.core import get_session, get_drivers, get_circuits, add_driver_id_or_number
 from scrape.data import to_db_fields, get_one_from_df
 
@@ -85,6 +85,19 @@ def scrape_race_data(tx: Session, event, year):
         for _, p in df.iterrows():
             model.PitStop.get_or_create(tx, pit_summary_id=driver_pit_summary.id, **to_db_fields(p))
         tx.commit()
+
+        # overtakes
+        df = get_driver_overtakes(session, driver_number)
+        for _, o in df.iterrows():
+            passed_driver = o["DriverNumberAgainst"]
+            o["PassedDriverId"] = get_one_from_df(drivers, f'DriverNumber == "{passed_driver}"')[
+                "DriverNumber"
+            ]
+            model.Overtake.get_or_create(
+                tx,
+                driver_race_summary_id=driver_summary.id,
+                **to_db_fields(o.drop(labels=["DriverNumberAgainst", "DriverNumber"])),
+            )
 
     logging.info("done!")
 
