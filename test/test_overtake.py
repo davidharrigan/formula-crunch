@@ -99,7 +99,6 @@ class TestAustria2022:
         session, drivers = austria_2022
         overtakes = get_driver_overtakes(session, "77")
         expected = [
-            # ExpectedOvertake("13", "GAS", "16"), passed on pit exit
             ExpectedOvertake("64", "ALB", "10"),
         ]
         assert_driver_overtakes(drivers, overtakes, expected)
