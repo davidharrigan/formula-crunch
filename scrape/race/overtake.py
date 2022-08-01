@@ -25,6 +25,9 @@ class OvertakeStatus(Enum):
     # Overtake happened on the first lap
     FIRST_LAP = auto()
 
+    # There was never a battle against this driver.
+    NO_BATTLE = auto()
+
     # No position data available to determine on/off track status.
     NO_POSITION_DATA = auto()
 
@@ -42,6 +45,12 @@ class OvertakeStatus(Enum):
 
     # Passed driver is still in their first lap
     FIRST_LAP_OTHER = auto()
+
+    # Yellow, red, safety car, etc.
+    TRACK_STATUS = auto()
+
+    # Position was regained after losing it for a split second
+    POSITION_REGAINED = auto()
 
 
 def get_overtakes(session: Session) -> pd.DataFrame:
@@ -65,27 +74,35 @@ def get_driver_overtakes(
 
     last_position = timings.iloc[0]["Position"]
     overtakes = []
+    this_lap = None
     for idx, row in timings.iterrows():
         position = row["Position"]
-        if position == last_position:  # no improvement
+        if position == last_position:  # no change
             continue
-        if position > last_position:
+        if position > last_position:  # no improvement
             last_position = position
             continue
 
-        last_position = position
+        gained = last_position - position
         time = row["Time"]
 
-        against, status = __is_overtake(session, position, time, driver_number)
-        overtakes.append(
-            {
-                "Time": time,
-                "LapNumber": row["LapNumber"],
-                "Position": position,
-                "Against": against,
-                "PassingStatus": status.name,
-            }
-        )
+        if this_lap != row["LapNumber"]:
+            this_lap = row["LapNumber"]
+
+        for i in range(1, gained + 1):
+            against, status = __is_overtake(session, last_position - i, time, driver_number)
+            overtakes.append(
+                {
+                    "Time": time,
+                    "LapNumber": row["LapNumber"],
+                    "Position": position,
+                    "DriverNumber": driver_number,
+                    "DriverNumberAgainst": against,
+                    "PassingStatus": status.name,
+                }
+            )
+
+        last_position = position
 
     df = pd.DataFrame(overtakes)
 
@@ -93,48 +110,86 @@ def get_driver_overtakes(
     df = df[~df["LapNumber"].isnull()]
 
     # mark data where multiple overtakes occur within the same lap against the same driver
-    dup = df.duplicated(["LapNumber", "Position", "Against"], keep="last")
+    dup = df.duplicated(
+        ["LapNumber", "Position", "DriverNumberAgainst", "PassingStatus"], keep="last"
+    )
     df.loc[dup, "PassingStatus"] = OvertakeStatus.DUPLICATE.name
 
     return df.reset_index(drop=True)
 
 
 def __is_overtake(session, position, time, overtaker) -> (str, OvertakeStatus):
-    driver_against = timing.get_driver_at_position(session, time, position + 1)
-
-    # 1. is not the first lap
+    """
+    TODO: check car is full car length ahead for both the driver and the driver
+        against for the past x seconds.
+    """
+    # driver data
     laps = session.laps.pick_driver(overtaker)
     lap = timing.get_lap_at_time(time, laps)
+    timings = session.timings.pick_driver(overtaker)
+
+    driver_against = timing.get_driver_at_position(
+        session, time, position + 1, not_include=[overtaker]
+    )
+    driver_against_laps = session.laps.pick_driver(driver_against)
+    driver_against_lap = timing.get_lap_at_time(time, driver_against_laps)
+    driver_against_timings = session.timings.pick_driver(driver_against)
+
+    # 1. is not the first lap
     if lap is None:
         return driver_against, OvertakeStatus.NO_LAP
     if lap["LapNumber"] == 1:
         return driver_against, OvertakeStatus.FIRST_LAP
 
-    overtaken_driver_laps = session.laps.pick_driver(driver_against)
-    overtaken_driver_lap = timing.get_lap_at_time(time, overtaken_driver_laps)
-    if overtaken_driver_lap is None:
+    if driver_against_lap is None:
         return driver_against, OvertakeStatus.NO_LAP_OTHER
-    if overtaken_driver_lap["LapNumber"] == 1:
+    if driver_against_lap["LapNumber"] == 1:
         return driver_against, OvertakeStatus.FIRST_LAP_OTHER
 
-    # 2. overtaken driver is not pitted
-    overtaken_driver_timings = session.timings.pick_driver(driver_against)
-    if timing.is_in_pit(time, overtaken_driver_timings):
+    # 2. track status is clear with 3 second tolerance for when a non-clear status indicator is raised.
+    last_non_green = None
+    track_status_raised_tolerance = pd.Timedelta(3, "s")
+    for _, ts in session.track_status.iterrows():
+        if last_non_green is None and ts["Status"] != "1":
+            last_non_green = ts
+        if last_non_green is not None and ts["Status"] == "1":
+            if (
+                time >= last_non_green["Time"] - track_status_raised_tolerance
+                and time <= ts["Time"]
+            ):
+                return driver_against, OvertakeStatus.TRACK_STATUS
+            last_non_green = None
+
+    # 3. overtaken driver is not pitted
+    pit_tolerance = pd.Timedelta(2, "s")
+    if timing.is_in_pit(time, driver_against_timings, pit_tolerance):
         return driver_against, OvertakeStatus.PIT
 
-    # 3. position is maintained for 3 seconds
-    pos_maintained_tolerance = pd.Timedelta(3, "s")
-    timings = session.timings.pick_driver(overtaker)
-    positions_next_5_seconds = timings[
+    # 4. position is maintained for 5 seconds
+    pos_maintained_tolerance = pd.Timedelta(10, "s")
+    next_positions = timings[
         (timings["Time"] > time) & (timings["Time"] <= time + pos_maintained_tolerance)
     ]
-    for _, row in positions_next_5_seconds.iterrows():
+    for _, row in next_positions.iterrows():
         if row["Position"] > position:
             return driver_against, OvertakeStatus.LOST_TOO_QUICK
 
-    # 4. overtaken driver is not off track
+    # 5. make sure the other driver was ahead in the last 5 seconds (e.g.
+    # position did not improve due to someone in front pitting, retiring, etc.)
+    time_ahead_tolerance = pd.Timedelta(5, "s")
+    driver_against_prev_positions = driver_against_timings[
+        (driver_against_timings["Time"] < time)
+        & (driver_against_timings["Time"] >= time - time_ahead_tolerance)
+    ]
+    for _, row in driver_against_prev_positions.iterrows():
+        pos_now_idx = timings[timings["Time"] >= row["Time"]]["Time"].idxmin()
+        pos_now = timings.loc[pos_now_idx]["Position"]
+        if pos_now != position and row["Position"] > pos_now:  # make sure they were ahead
+            return driver_against, OvertakeStatus.NO_BATTLE
+
+    # 6. overtaken driver is off track
     off_track_tolerance = pd.Timedelta(2, "s")
-    pos_data = overtaken_driver_lap.get_pos_data().slice_by_time(
+    pos_data = driver_against_lap.get_pos_data().slice_by_time(
         time - off_track_tolerance, time + off_track_tolerance
     )
     if pos_data.empty:
@@ -142,12 +197,44 @@ def __is_overtake(session, position, time, overtaker) -> (str, OvertakeStatus):
     elif not pos_data[pos_data["Status"] == "OffTrack"].empty:
         return driver_against, OvertakeStatus.OFF_TRACK
 
-    # 5. overtaken driver driving slower than 30km/h are considered maybe off track
-    car_data = overtaken_driver_lap.get_car_data().slice_by_time(
+    # 7. overtaken driver driving slower than 30km/h are considered maybe off track
+    car_data = driver_against_lap.get_car_data().slice_by_time(
         time - off_track_tolerance, time + off_track_tolerance
     )
     if car_data["Speed"].mean() <= 30:
         return driver_against, OvertakeStatus.MAYBE_OFF_TRACK
+
+    # 8. overtaken driver had the lead over this driver for at least 5 seconds
+    # TODO: this is shit
+    # od_previous_positions = driver_against_timings[
+    #     (driver_against_timings["Time"] < time)
+    #     & (driver_against_timings["Time"] >= time - pd.Timedelta(15, "s"))
+    # ]
+    # first_occurance, last_occurance = None, None
+    # for _, row in od_previous_positions.iterrows():
+    #     # pos_now_idx = timings[timings["Time"] >= row["Time"]]["Time"].idxmin()
+    #     # pos_now = timings.loc[pos_now_idx]["Position"]
+    #     if row["Position"] <= position:  # and pos_now > row["Position"]:
+    #         if first_occurance is None:
+    #             first_occurance = row["Time"]
+    #         last_occurance = row["Time"]
+
+    # if first_occurance and last_occurance - first_occurance < pd.Timedelta(5, "s"):
+    #     return driver_against, OvertakeStatus.POSITION_REGAINED
+    # --
+
+    # 8. overtaken driver had sufficient lead
+    # make sure the driver had a gap larger than 0.025s in the last 10 seconds
+    # to filter side-by-side actions
+    # prev_positions = timings[
+    #     (timings["Time"] < time) & (timings["Time"] >= time - pd.Timedelta(10, "s"))
+    # ]
+    # for _, row in prev_positions.iterrows():
+    #     if row["Position"] > position:
+    #         interval = __interval_to_timedelta(row["IntervalToPositionAhead"])
+    #         if interval and interval > pd.Timedelta(25, "ms"):
+    #             break
+    #     return driver_against, OvertakeStatus.POSITION_REGAINED
 
     return driver_against, OvertakeStatus.OK
 

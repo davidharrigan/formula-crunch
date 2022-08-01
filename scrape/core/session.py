@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 
+import pandas as pd
 import numpy as np
 
 import fastf1 as ff1
@@ -22,10 +23,15 @@ class Session(ff1.core.Session):
         for key, val in vars(parent).items():
             setattr(self, key, val)
         self._timing_data: Timing
+        self._track_status_data: pd.DataFrame
 
     @property
     def timings(self):
         return self._get_property_warn_not_loaded("_timing_data")
+
+    @property
+    def track_status(self):
+        return self._get_property_warn_not_loaded("_track_status_data")
 
     def load(
         self, *, laps=True, telemetry=True, weather=True, messages=True, timing=True, livedata=None
@@ -40,6 +46,8 @@ class Session(ff1.core.Session):
             except Exception as exc:
                 logging.warning("Failed to load timing data!")
                 logging.warning("Timing data failure traceback:", exc_info=exc)
+
+        self._track_status_data = pd.DataFrame(ff1.api.track_status_data(self.api_path))
 
     def _load_timing_data(self):
         df = get_timing_data(self.api_path)

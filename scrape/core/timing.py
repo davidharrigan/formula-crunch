@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 import fastf1 as ff1
 from fastf1.utils import recursive_dict_get
@@ -295,20 +296,34 @@ def get_lap_at_time(time: pd.Timedelta, laps: ff1.core.Laps) -> ff1.core.Lap | N
     return lap
 
 
-def get_driver_at_position(session: Session, time: pd.Timedelta, position: int) -> str:
+def get_driver_at_position(session, time: pd.Timedelta, position: int, not_include=None) -> str:
     timing_data = session.timings
     candidates = timing_data[(timing_data["Position"] == position) & (timing_data["Time"] <= time)]
     if len(candidates) == 0:
         return ""
+    if not_include is not None:
+        candidates = candidates[~candidates["DriverNumber"].isin(not_include)]
     idxmax = candidates["Time"].idxmax()
     return timing_data.iloc[idxmax]["DriverNumber"]
 
 
-def is_in_pit(time: pd.Timedelta, timings: Timing) -> bool:
+def is_in_pit(time: pd.Timedelta, timings: Timing, tolerance=timedelta(seconds=0)) -> bool:
     driver_numbers = timings["DriverNumber"].unique()
     if len(driver_numbers) != 1:
         raise Exception("Expected only 1 driver in the given timing")
 
-    closest_idx = timings[timings["Time"] >= time]["Time"].idxmin()
-    closest = timings.loc[closest_idx]
-    return closest["Status"] in ("PIT_IN", "PIT_OUT", "PIT_LANE")
+    # find the window to check
+    window = timings[
+        (timings["Time"] >= (time - tolerance)) & (timings["Time"] <= (time + tolerance))
+    ]
+
+    idxmin = window["Time"].idxmin()
+    idxmax = window["Time"].idxmax()
+
+    # check window + timing before and after
+    check = timings.loc[idxmin - 1 : idxmax + 1]
+
+    for _, row in check.iterrows():
+        if row["Status"] in ("PIT_IN", "PIT_OUT", "PIT_LANE"):
+            return True
+    return False
