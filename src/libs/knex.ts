@@ -1,8 +1,8 @@
-import knex from "knex";
+import { Knex, knex } from "knex";
 
-export const getConnection = () => {
+export const getConnection = (): Knex => {
   return knex({
-    client: "better-sqlite3",
+    client: "sqlite3",
     connection: {
       filename: "./data/db.sqlite"
     }

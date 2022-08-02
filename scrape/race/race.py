@@ -25,5 +25,6 @@ def get_race(session: Session) -> pd.Series:
             "RoundNumber": event["RoundNumber"].item(),
             "Date": datetime,
             "Drivers": len(pd.unique(session.laps["Driver"])),
+            "EventName": event["EventName"],
         }
     )

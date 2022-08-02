@@ -41,6 +41,7 @@ class Race(Base):
     id = Column(Integer, primary_key=True)
     year = Column(Integer)
     date = Column(Date)
+    event_name = Column(String)
     round_number = Column(Integer)
     drivers = Column(Integer)
     circuit_id = Column(String, ForeignKey("circuit.circuit_id"))
@@ -66,6 +67,13 @@ class DriverRaceSummary(Base):
     __tablename__ = "driver_race_summary"
 
     id = Column(Integer, primary_key=True)
+
+    grid_position = Column(String)
+    position = Column(String)
+    points = Column(Integer)
+    season_standing = Column(Integer)
+    season_points = Column(Integer)
+    status = Column(String)
 
     driver_id = Column(String, ForeignKey("driver.driver_id"))
     race_id = Column(Integer, ForeignKey("race.id"))

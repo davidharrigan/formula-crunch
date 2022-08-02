@@ -2,7 +2,7 @@ import { SliderBar } from "./SliderBar";
 
 interface SliderProps {
   name: string;
-  value: string;
+  value: string | number;
   subtext?: string;
   rank: number;
   totalParticipants: number;
