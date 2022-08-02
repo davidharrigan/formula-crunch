@@ -79,7 +79,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     await Promise.all([
       getRace(knex, raceSummary.raceId),
       getDriver(knex, raceSummary.driverId),
-      getLapSummary(knex, raceSummary.id),
+      getLapSummary(knex, raceSummary.raceId, raceSummary.id),
       getPitSummary(knex, raceSummary.id),
       getOvertakeSummary(knex, raceSummary.id),
     ]);
@@ -140,13 +140,13 @@ export default function DriverRace({
             name="Fastest Lap"
             value={lapSummary.fastestLapTime}
             subtext={`Lap ${lapSummary.fastestLap}`}
-            rank={1}
+            rank={lapSummary.fastestLapRank}
             totalParticipants={20}
           />
           <Stats.Slider
             name="Average Pace"
             value={lapSummary.averageTime}
-            rank={2}
+            rank={lapSummary.averageTimeRank}
             totalParticipants={20}
           />
           <Stats.Slider
@@ -172,14 +172,14 @@ export default function DriverRace({
             name="Average Speed"
             value={lapSummary.averageSpeed}
             subtext="kmh"
-            rank={3}
+            rank={lapSummary.averageSpeedRank}
             totalParticipants={20}
           />
           <Stats.Slider
             name="Fastest Speed Trap"
             value={lapSummary.fastestSpeedTrap}
             subtext="kmh"
-            rank={2}
+            rank={lapSummary.fastestSpeedTrapRank}
             totalParticipants={20}
           />
         </div>
