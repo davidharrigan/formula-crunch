@@ -2,7 +2,7 @@ import Image from "next/image";
 import { getOrdinal } from "../../libs/ordinal";
 
 interface ResultProps {
-  image: string;
+  driverId: string;
   name: string;
   place: number;
   subheading?: string;
@@ -14,6 +14,7 @@ interface ResultProps {
     podiums: number;
   };
 }
+
 const getPlaceColor = (place: number): string => {
   if (place === 1) {
     return "text-gold";
@@ -37,10 +38,10 @@ const Result = (props: ResultProps) => {
         {/* left column */}
         <div className="basis-1/2">
           <Image
+            src={`/drivers/${props.driverId}.png`}
             alt={props.name}
             width={300}
             height={300}
-            src={require("../../assets/" + props.image)}
           />
         </div>
 

@@ -113,7 +113,7 @@ export default function DriverRace({
               name={`${driver.firstName} ${driver.lastName}`}
               subheading={`${race.year} ${race.eventName}`}
               place={raceSummary.position}
-              image={`drivers/${driver.driverId}.png`}
+              driverId={driver.driverId}
               season={{
                 rank: raceSummary.seasonStanding,
                 points: raceSummary.seasonPoints,

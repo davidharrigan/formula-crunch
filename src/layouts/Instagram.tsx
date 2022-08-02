@@ -9,9 +9,9 @@ const Instagram = () => {
           <div className="basis-1/2">
             <Driver.Result
               name="Max Verstappen"
+              driverId="max_verstappen"
               subheading="2022 Austrian Grand Prix"
               place={2}
-              image="drivers/Max.png"
               season={{ rank: 1, points: 208, wins: 6, podiums: 8 }}
             />
           </div>

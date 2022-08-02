@@ -1,9 +1,5 @@
 import Image from "next/image";
 
-import SoftTire from "../../assets/tires/soft.svg";
-import MediumTire from "../../assets/tires/medium.svg";
-import HardTire from "../../assets/tires/hard.svg";
-
 interface TireProps {
   compound: "soft" | "medium" | "hard";
   laps: number;
@@ -12,15 +8,15 @@ interface TireProps {
 const compoundMap = {
   soft: {
     alt: "soft-tyre",
-    src: SoftTire,
+    src: "/tires/soft.svg",
   },
   medium: {
     alt: "medium-tyre",
-    src: MediumTire,
+    src: "/tires/medium.svg",
   },
   hard: {
     alt: "hard-tyre",
-    src: HardTire,
+    src: "/tires/hard.svg",
   },
 };
 
