@@ -1,5 +1,4 @@
 import { Knex } from "knex";
-import moment from "moment";
 
 export interface RaceSummary {
   id: number;

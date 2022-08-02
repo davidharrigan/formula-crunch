@@ -59,7 +59,7 @@ export default function Year({ races }: YearProps) {
               className="hover:text-sky-400"
               href={`/races/${r.year}/${r.circuitId}`}
             >
-              {r.country} - {r.name} - {r.date}
+              {`${r.country} - ${r.name} - ${r.date}`}
             </a>
           </li>
         ))}

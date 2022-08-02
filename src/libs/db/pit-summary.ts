@@ -51,7 +51,7 @@ export const getPitSummary = async (knex: Knex, raceSummaryId: number): Promise<
     .where({ pitSummaryId: pitSummary.id })
 
   if (pitStops.length > 0) {
-    pitStops.map((v, idx) => {
+    pitStops.forEach((v, idx) => {
       const dur = moment(v.duration)
       pitStops[idx].duration = dur.format("ss.SSS");
     })
