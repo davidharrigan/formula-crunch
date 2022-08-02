@@ -113,8 +113,10 @@ def to_db_fields(data: pd.Series) -> dict:
 
 def get_one_from_df(df: pd.DataFrame, query: str) -> pd.Series:
     selected = df.query(query)
-    if len(selected) != 1:
-        raise Exception(f"expected only 1 result from the query, got {len(selected)}")
+    if len(selected) > 1:
+        raise Exception(f"expected 1 or 0 result from the query, got {len(selected)}")
+    if len(selected) == 0:
+        return pd.Series([], dtype=object)
     return selected.iloc[0]
 
 

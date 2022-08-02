@@ -84,18 +84,18 @@ def scrape_race_data(tx: Session, event, year):
         tx.commit()
 
         # pit summary
-        series = get_one_from_df(pit_summary, f'DriverID == "{driver_id}"').drop(
-            labels=["TotalStops", "DriverID"]
-        )
+        series = get_one_from_df(pit_summary, f'DriverID == "{driver_id}"')
+        if not series.empty:
+            series = series.drop(labels=["TotalStops", "DriverID"])
         driver_pit_summary = model.PitSummary.get_or_create(
             tx, driver_race_summary_id=driver_summary.id, **to_db_fields(series)
         )
         tx.commit()
 
         # pit stops
-        df = pit_stops.query(f'DriverID == "{driver_id}"').drop(
-            columns=["DriverID", "PitDate", "Time"]
-        )
+        df = pit_stops.query(f'DriverID == "{driver_id}"')
+        if not df.empty:
+            df = df.drop(columns=["DriverID", "PitDate", "Time"])
         for _, p in df.iterrows():
             model.PitStop.get_or_create(tx, pit_summary_id=driver_pit_summary.id, **to_db_fields(p))
         tx.commit()
