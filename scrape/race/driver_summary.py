@@ -20,7 +20,9 @@ def get_driver_summary(session: Session) -> pd.DataFrame:
     ]
 
     # Get points data
-    df = df.reindex(columns=df.columns.tolist() + ["SeasonPoints", "SeasonStanding"])
+    df = df.reindex(
+        columns=df.columns.tolist() + ["SeasonPoints", "SeasonStanding", "LapsCompleted"]
+    )
     res = ff1.Cache.requests_get(
         ff1.api.base_url + session.api_path + "ChampionshipPrediction.json"
     )
@@ -33,5 +35,8 @@ def get_driver_summary(session: Session) -> pd.DataFrame:
         item = content[row["DriverNumber"]]
         df.at[idx, "SeasonPoints"] = item["PredictedPoints"]
         df.at[idx, "SeasonStanding"] = item["PredictedPosition"]
+        df.at[idx, "LapsCompleted"] = session.laps.pick_driver(row["DriverNumber"])[
+            "LapNumber"
+        ].max()
 
     return df

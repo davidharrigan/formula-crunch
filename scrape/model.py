@@ -75,6 +75,10 @@ class DriverRaceSummary(Base):
     season_points = Column(Integer)
     status = Column(String)
 
+    wins = Column(Integer, default=0)
+    podiums = Column(Integer, default=0)
+    laps_completed = Column(Integer)
+
     driver_id = Column(String, ForeignKey("driver.driver_id"))
     race_id = Column(Integer, ForeignKey("race.id"))
 
@@ -100,6 +104,22 @@ class DriverRaceSummary(Base):
         rs = cls(**kwargs)
         session.add(rs)
         return rs
+
+    @classmethod
+    def upsert(cls, session: Session, **kwargs) -> DriverRaceSummary:
+        rs = (
+            session.query(cls)
+            .filter_by(race_id=kwargs["race_id"], driver_id=kwargs["driver_id"])
+            .one_or_none()
+        )
+        if rs:
+            for k, v in kwargs.items():
+                setattr(rs, k, v)
+            return rs
+        else:
+            rs = cls(**kwargs)
+            session.add(rs)
+            return rs
 
 
 class LapSummary(Base):

@@ -15,6 +15,8 @@ from scrape.race import (
 )
 from scrape.core import get_session, get_drivers, get_circuits, add_driver_id_or_number
 from scrape.data import to_db_fields, get_one_from_df
+from scrape.plot import create_fastest_lap_gear_plot
+
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 ff1.Cache.enable_cache(os.path.join(ROOT_DIR, "..", "data", "cache"))
@@ -62,7 +64,7 @@ def scrape_race_data(tx: Session, event, year):
         driver_number = drv["DriverNumber"]
 
         # race summary
-        driver_summary = model.DriverRaceSummary.get_or_create(
+        driver_summary = model.DriverRaceSummary.upsert(
             tx,
             race_id=race.id,
             driver_id=driver_id,
@@ -104,14 +106,17 @@ def scrape_race_data(tx: Session, event, year):
         df = get_driver_overtakes(session, driver_number)
         for _, o in df.iterrows():
             passed_driver = o["DriverNumberAgainst"]
-            o["PassedDriverId"] = get_one_from_df(drivers, f'DriverNumber == "{passed_driver}"')[
-                "DriverNumber"
+            o["PassedDriverID"] = get_one_from_df(drivers, f'DriverNumber == "{passed_driver}"')[
+                "DriverID"
             ]
             model.Overtake.get_or_create(
                 tx,
                 driver_race_summary_id=driver_summary.id,
                 **to_db_fields(o.drop(labels=["DriverNumberAgainst", "DriverNumber"])),
             )
+
+        # gear shifts
+        create_fastest_lap_gear_plot(session, race.year, race.circuit_id, driver_id)
 
     logging.info("done!")
 
