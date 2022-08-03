@@ -10,7 +10,7 @@ interface SliderProps {
 
 const Slider = (props: SliderProps) => {
   const rankPercent =
-    ((props.totalParticipants - (props.rank - 1)) / props.totalParticipants) *
+    ((props.totalParticipants - props.rank) / (props.totalParticipants - 1)) *
     100;
 
   let sliderSection = 0;
