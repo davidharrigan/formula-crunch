@@ -1,46 +1,55 @@
-# Getting Started with Create React App
+# formula-crunch
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Scrape data
 
-## Available Scripts
+Scrape driver data
 
-In the project directory, you can run:
+```sh
+python manage.py scrape drivers
+```
 
-### `npm start`
+Scrape circuit data
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```sh
+python manage.py scrape circuites
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+Scrape race data
 
-### `npm test`
+```sh
+python manage.py scrape race --event=<country or circuit name>
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+For more usage info, use the `--help` flag with any sub-command
 
-### `npm run build`
+```sh
+python manage.py scrape --help
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Database Migration
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Generate migration from model changes
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```sh
+alembic revision --autogenerate -m "added something new"
+```
 
-### `npm run eject`
+Run migration
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```sh
+alembic upgrade head
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Rollback to previous version
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```sh
+alembic downgrade head-1
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+## Generating UI
 
-## Learn More
+Run the UI server
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+```sh
+npm run dev
+```
