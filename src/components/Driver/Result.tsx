@@ -98,7 +98,10 @@ const Result = (props: ResultProps) => {
                   )}
                 </div>
                 <p className="text-slate-500 font-bold">
-                  Started {getOrdinal(props.gridPosition)}
+                  Started{" "}
+                  <span className="ordinal">
+                    {getOrdinal(props.gridPosition)}
+                  </span>
                 </p>
               </div>
             </div>
