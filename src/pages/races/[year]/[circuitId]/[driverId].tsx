@@ -111,7 +111,7 @@ export default function DriverRace({
     <div className="w-[1200px] h-[1200px] p-4 bg-oxfordBlue text-eggshell">
       <div className="flex flex-col gap-10">
         <div className="flex flex-row">
-          <div className="basis-1/2">
+          <div className="basis-1/2 pt-4">
             <Driver.Result
               name={`${driver.firstName} ${driver.lastName}`}
               subheading={race.eventName}
