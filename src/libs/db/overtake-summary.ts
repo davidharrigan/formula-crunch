@@ -1,54 +1,49 @@
 import { Knex } from "knex";
 
 export interface OvertakeSummary {
-  numberOvertakes: number;
-  overtakes: Array<Overtake>;
-}
-
-export interface Overtake {
-  id: number;
   driverRaceSummaryId: number;
-  time: string;
-  lapNumber: number;
-  position: number;
-  passedDriverNumber: number; // TODO: use driver_id
-  passingStatus: string | null;
-  passingStatusOverride: string | null;
-  passingStatusOverrideReason: string | null;
+  overtakes: number;
+  overtakesRank: number
 }
 
-export const getOvertakeSummary = async (knex: Knex, raceSummaryId: number): Promise<OvertakeSummary | null> => {
-  const overtakes = await knex
-    .select<Array<Overtake>>({
-      id: "id",
-      driverRaceSummaryId: "driver_race_summary_id",
-      time: "time",
-      lapNumber: "lap_number",
-      position: "position",
-      passedDriverNumber: "passed_driver_id", // TODO: use driver_id
-      passingStatus: "passing_status",
-      passingStatusOverride: "passing_status_override",
-      passingStatusOverrideReason: "passing_status_override_reason",
+export const getOvertakeSummary = async (knex: Knex, raceId: number, raceSummaryId: number): Promise<OvertakeSummary | null> => {
+  const overtakeSummary = await knex
+    .select({
+      driverRaceSummaryId: 'driver_race_summary_id',
+      overtakes: 'overtakes_count',
+      overtakesRank: 'overtakes_rank',
     })
-    .from("overtake")
+    .from(
+      knex
+        .select('*')
+        .rank('overtakes_rank', function () { this.orderBy('overtakes_count', 'desc') } )
+        .from(knex
+          .select('*')
+          .count('*', {as: 'overtakes_count'})
+          .from('overtake')
+          .join("driver_race_summary", { "driver_race_summary.id": "overtake.driver_race_summary_id" })
+          .where({ 'driver_race_summary.race_id': raceId })
+            .andWhere(function () {
+              this.andWhere(function () {
+                this
+                  .andWhere({ 'passing_status': 'OK' })
+                  .andWhere({'passing_status_override': null})
+              })
+              .orWhere({ 'passing_status_override': 'OK' })
+          })
+        .groupBy('driver_race_summary_id')
+      )
+    )
     .where({ driverRaceSummaryId: raceSummaryId })
+    .first()
 
-  const overtakeSummary: OvertakeSummary = {
-    numberOvertakes: 0,
-    overtakes,
-  };
-
-  let numberOvertakes = 0
-  overtakes.forEach(ov => {
-    if (ov.passingStatusOverride !== null) {
-      if (ov.passingStatusOverride === "OK") {
-        numberOvertakes++;
-      }
-    } else if (ov.passingStatus === "OK") {
-      numberOvertakes++;
+  if (!overtakeSummary) {
+    return {
+      driverRaceSummaryId: raceSummaryId,
+      overtakes: 0,
+      overtakesRank: 20,
     }
-  })
-  overtakeSummary.numberOvertakes = numberOvertakes;
+  }
 
   return overtakeSummary;
 }

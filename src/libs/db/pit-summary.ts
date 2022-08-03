@@ -7,9 +7,12 @@ export interface PitSummary {
   average: string;
   totalTime: string;
 
-  pitStops: Array<PitStop>
+  avaerageRank: number;
+  totalTimeRank: number;
+
   fastestPitTime: string;
   fastestPitLap: number;
+  fastestPitRank: number;
 }
 
 export interface PitStop {
@@ -17,17 +20,31 @@ export interface PitStop {
   lapNumber: number;
   stop: number;
   duration: string;
+  durationRank: number;
 }
 
-export const getPitSummary = async (knex: Knex, raceSummaryId: number): Promise<PitSummary | null> => {
+export const getPitSummary = async (knex: Knex, raceId: number, raceSummaryId: number): Promise<PitSummary | null> => {
   const pitSummary = await knex
     .select<PitSummary>({
       id: "id",
       driverRaceSummaryId: "driver_race_summary_id",
       average: "average",
       totalTime: "total_time",
+      averageRank: "average_rank",
+      totalTimeRank: "total_time_rank"
     })
-    .from("pit_summary")
+    .from(
+      knex
+        .select('*')
+        .rank('average_rank', 'average')
+        .rank('total_time_rank', 'total_time')
+        .from(knex
+          .select('*')
+          .from('pit_summary')
+          .join("driver_race_summary", { "driver_race_summary.id": "pit_summary.driver_race_summary_id" })
+          .where({'driver_race_summary.race_id': raceId})
+      )
+    )
     .where({ driverRaceSummaryId: raceSummaryId })
     .first();
   if (!pitSummary) {
@@ -40,31 +57,36 @@ export const getPitSummary = async (knex: Knex, raceSummaryId: number): Promise<
   const total = moment(pitSummary.totalTime);
   pitSummary.totalTime = total.format("mm:ss.SSS");
 
-  const pitStops = await knex
-    .select<Array<PitStop>>({
+  const fastestPitStop = await knex
+    .select<PitStop>({
       pitSummaryId: "pit_summary_id",
       lapNumber: "lap_number",
       stop: "stop",
       duration: "duration",
+      durationRank: "duration_rank",
     })
-    .from("pit_stop")
+    .from(
+      knex
+        .select('*')
+        .rank('duration_rank', 'fastest_pit_stop_duration')
+        .from(knex
+          .select('*')
+          .min('duration', {as: 'fastest_pit_stop_duration'})
+          .from('pit_stop')
+          .join("pit_summary", { "pit_summary.id": "pit_stop.pit_summary_id" })
+          .join("driver_race_summary", { "driver_race_summary.id": "pit_summary.driver_race_summary_id" })
+          .where({'driver_race_summary.race_id': raceId})
+          .groupBy('pit_summary_id')
+        )
+    )
     .where({ pitSummaryId: pitSummary.id })
+    .first();
 
-  if (pitStops.length > 0) {
-    pitStops.forEach((v, idx) => {
-      const dur = moment(v.duration)
-      pitStops[idx].duration = dur.format("ss.SSS");
-    })
-
-    const sorted = pitStops.sort((a, b) => {
-      if (a.duration < b.duration) return -1;
-      else if (b.duration < a.duration) return 1;
-      else return 0;
-    })
-
-    pitSummary.pitStops = pitStops;
-    pitSummary.fastestPitLap = sorted[0].lapNumber;
-    pitSummary.fastestPitTime = sorted[0].duration;
+  if (fastestPitStop) {
+    const fastest = moment(fastestPitStop.duration);
+    pitSummary.fastestPitTime = fastest.format("mm:ss.SSS");
+    pitSummary.fastestPitLap = fastestPitStop.lapNumber;
+    pitSummary.fastestPitRank = fastestPitStop.durationRank;
   }
 
   return pitSummary;

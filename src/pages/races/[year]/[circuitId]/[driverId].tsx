@@ -29,6 +29,8 @@ interface DriverRaceSummaryProps {
   overtakeSummary: OvertakeSummary;
 }
 
+const TOTAL_PARTICIPANTS = 20;
+
 export async function getStaticPaths() {
   const knex = getConnection();
   const drivers = await knex
@@ -80,8 +82,8 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       getRace(knex, raceSummary.raceId),
       getDriver(knex, raceSummary.driverId),
       getLapSummary(knex, raceSummary.raceId, raceSummary.id),
-      getPitSummary(knex, raceSummary.id),
-      getOvertakeSummary(knex, raceSummary.id),
+      getPitSummary(knex, raceSummary.raceId, raceSummary.id),
+      getOvertakeSummary(knex, raceSummary.raceId, raceSummary.id),
     ]);
 
   return {
@@ -141,46 +143,46 @@ export default function DriverRace({
             value={lapSummary.fastestLapTime}
             subtext={`Lap ${lapSummary.fastestLap}`}
             rank={lapSummary.fastestLapRank}
-            totalParticipants={20}
+            totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
             name="Average Pace"
             value={lapSummary.averageTime}
             rank={lapSummary.averageTimeRank}
-            totalParticipants={20}
+            totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
             name="Fastest Pit"
             value={pitSummary.fastestPitTime}
             subtext={`Lap ${pitSummary.fastestPitLap}`}
-            rank={4}
-            totalParticipants={20}
+            rank={pitSummary.fastestPitRank}
+            totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
             name="Total Pit Time"
             value={pitSummary.totalTime}
-            rank={18}
-            totalParticipants={20}
+            rank={pitSummary.totalTimeRank}
+            totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
             name="Overtakes"
-            value={overtakeSummary.numberOvertakes}
-            rank={18}
-            totalParticipants={20}
+            value={overtakeSummary.overtakes}
+            rank={overtakeSummary.overtakesRank}
+            totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
             name="Average Speed"
             value={lapSummary.averageSpeed}
             subtext="kmh"
             rank={lapSummary.averageSpeedRank}
-            totalParticipants={20}
+            totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
             name="Fastest Speed Trap"
             value={lapSummary.fastestSpeedTrap}
             subtext="kmh"
             rank={lapSummary.fastestSpeedTrapRank}
-            totalParticipants={20}
+            totalParticipants={TOTAL_PARTICIPANTS}
           />
         </div>
       </div>
