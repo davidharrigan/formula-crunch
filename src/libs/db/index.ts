@@ -3,7 +3,7 @@ import { RaceSummary, getRaceSummary } from "./race-summary";
 import { Driver, getDriver } from './driver';
 import { Race, getRace } from './race';
 import { PitStop, PitSummary, getPitSummary } from './pit-summary';
-import { OvertakeSummary, Overtake, getOvertakeSummary} from './overtake-summary';
+import { OvertakeSummary, getOvertakeSummary} from './overtake-summary';
 
 export {
   getLapSummary,
@@ -21,6 +21,5 @@ export type {
   Race,
   PitSummary,
   PitStop,
-  Overtake,
   OvertakeSummary,
 }

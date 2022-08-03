@@ -25,7 +25,7 @@ const Slider = (props: SliderProps) => {
   return (
     <div className="flex flex-col gap-2">
       <div>
-        <p className="text-xl tracking-wide font-bold text-cyberYellow">
+        <p className="text-3xl tracking-wide font-bold text-cyberYellow">
           {props.name}
         </p>
       </div>
@@ -34,7 +34,7 @@ const Slider = (props: SliderProps) => {
           <p className="text-6xl font-bold tracking-wider">{props.value}</p>
         </div>
         <div>
-          <p className="text-xl text-bittersweet">{props.subtext}</p>
+          <p className="text-2xl text-bittersweet">{props.subtext}</p>
         </div>
       </div>
 

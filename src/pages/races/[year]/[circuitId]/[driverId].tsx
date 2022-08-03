@@ -1,5 +1,6 @@
 import { GetStaticProps } from "next";
 import { getConnection } from "../../../../libs/knex";
+import Image from "next/image";
 
 import Driver from "../../../../components/Driver";
 import Stats from "../../../../components/Stats";
@@ -107,37 +108,43 @@ export default function DriverRace({
   overtakeSummary,
 }: DriverRaceSummaryProps) {
   return (
-    <div className="w-[1200px] h-[1200px] p-5 bg-oxfordBlue text-eggshell">
+    <div className="w-[1200px] h-[1200px] p-4 bg-oxfordBlue text-eggshell">
       <div className="flex flex-col gap-10">
         <div className="flex flex-row">
           <div className="basis-1/2">
             <Driver.Result
               name={`${driver.firstName} ${driver.lastName}`}
-              subheading={`${race.year} ${race.eventName}`}
+              subheading={race.eventName}
               place={raceSummary.position}
+              gridPosition={raceSummary.gridPosition}
+              year={race.year}
               driverId={driver.driverId}
               season={{
                 rank: raceSummary.seasonStanding,
                 points: raceSummary.seasonPoints,
-                wins: 0,
-                podiums: 0,
+                wins: raceSummary.wins,
+                podiums: raceSummary.podiums,
               }}
+              status={raceSummary.status}
+              lapsCompleted={raceSummary.lapsCompleted}
             />
           </div>
-          <div className="basis-1/2 px-16 mt-24">
-            <Stats.RaceSummary
-              startingGrid={raceSummary.gridPosition}
-              time="1:24:25:844"
-              tires={[
-                { compound: "hard", laps: 22 },
-                { compound: "hard", laps: 23 },
-                { compound: "medium", laps: 13 },
-              ]}
-            />
+          <div className="basis-1/2 p-3 mt-16">
+            <p className="pl-8 text-bold text-cyberYellow text-2xl">
+              Fastest Lap Gear Shifts
+            </p>
+            <div>
+              <Image
+                src={`/gear-plots/${race.year}/${race.circuitId}/${driver.driverId}.svg`}
+                alt={`Gear shifts ${race.year} ${race.eventName} ${driver.driverId}`}
+                width={560}
+                height={350}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="grid pt-4 px-16 grid-cols-2 gap-16">
+        <div className="grid px-16 grid-cols-2 gap-y-20 gap-x-16">
           <Stats.Slider
             name="Fastest Lap"
             value={lapSummary.fastestLapTime}
@@ -153,21 +160,21 @@ export default function DriverRace({
           />
           <Stats.Slider
             name="Fastest Pit"
-            value={pitSummary.fastestPitTime}
-            subtext={`Lap ${pitSummary.fastestPitLap}`}
-            rank={pitSummary.fastestPitRank}
+            value={pitSummary?.fastestPitTime ?? "N/A"}
+            subtext={pitSummary ? `Lap ${pitSummary.fastestPitLap}` : undefined}
+            rank={pitSummary?.fastestPitRank ?? TOTAL_PARTICIPANTS}
             totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
             name="Total Pit Time"
-            value={pitSummary.totalTime}
-            rank={pitSummary.totalTimeRank}
+            value={pitSummary?.totalTime ?? "N/A"}
+            rank={pitSummary?.totalTimeRank ?? TOTAL_PARTICIPANTS}
             totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
             name="Overtakes"
             value={overtakeSummary.overtakes}
-            rank={overtakeSummary.overtakesRank}
+            rank={overtakeSummary.overtakesRank ?? TOTAL_PARTICIPANTS}
             totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
@@ -175,13 +182,6 @@ export default function DriverRace({
             value={lapSummary.averageSpeed}
             subtext="kmh"
             rank={lapSummary.averageSpeedRank}
-            totalParticipants={TOTAL_PARTICIPANTS}
-          />
-          <Stats.Slider
-            name="Fastest Speed Trap"
-            value={lapSummary.fastestSpeedTrap}
-            subtext="kmh"
-            rank={lapSummary.fastestSpeedTrapRank}
             totalParticipants={TOTAL_PARTICIPANTS}
           />
         </div>

@@ -3,7 +3,7 @@ import moment from "moment";
 
 export interface PitSummary {
   id: number;
-  driverRaceSummaryId: string;
+  driverRaceSummaryId: number;
   average: string;
   totalTime: string;
 
@@ -42,7 +42,7 @@ export const getPitSummary = async (knex: Knex, raceId: number, raceSummaryId: n
           .select('*')
           .from('pit_summary')
           .join("driver_race_summary", { "driver_race_summary.id": "pit_summary.driver_race_summary_id" })
-          .where({'driver_race_summary.race_id': raceId})
+          .where({'driver_race_summary.race_id': raceId}).andWhereNot({'average': null}).andWhereNot({'total_time': null})
       )
     )
     .where({ driverRaceSummaryId: raceSummaryId })

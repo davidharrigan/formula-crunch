@@ -9,6 +9,9 @@ export interface RaceSummary {
   seasonStanding: number,
   seasonPoints: number,
   status: string,
+  podiums: number,
+  wins: number,
+  lapsCompleted: number,
 }
 
 export const getRaceSummary = async (knex: Knex, driverId: string, circuitId: string, raceYear: string): Promise<RaceSummary | null> => {
@@ -22,6 +25,9 @@ export const getRaceSummary = async (knex: Knex, driverId: string, circuitId: st
       seasonStanding: "driver_race_summary.season_standing",
       seasonPoints: "driver_race_summary.season_points",
       status: "driver_race_summary.status",
+      podiums: "driver_race_summary.podiums",
+      wins: "driver_race_summary.wins",
+      lapsCompleted: "driver_race_summary.laps_completed",
     })
     .from("driver_race_summary")
     .where({
