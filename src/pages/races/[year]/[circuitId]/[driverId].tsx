@@ -169,6 +169,13 @@ export default function DriverRace({
             name="Total Pit Time"
             value={pitSummary?.totalTime ?? "N/A"}
             rank={pitSummary?.totalTimeRank ?? TOTAL_PARTICIPANTS}
+            subtext={
+              pitSummary
+                ? `${pitSummary.totalStops} ${
+                    pitSummary.totalStops > 1 ? "Stops" : "Stop"
+                  }`
+                : undefined
+            }
             totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider

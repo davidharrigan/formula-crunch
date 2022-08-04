@@ -6,6 +6,7 @@ export interface PitSummary {
   driverRaceSummaryId: number;
   average: string;
   totalTime: string;
+  totalStops: number;
 
   avaerageRank: number;
   totalTimeRank: number;
@@ -31,7 +32,7 @@ export const getPitSummary = async (knex: Knex, raceId: number, raceSummaryId: n
       average: "average",
       totalTime: "total_time",
       averageRank: "average_rank",
-      totalTimeRank: "total_time_rank"
+      totalTimeRank: "total_time_rank",
     })
     .from(
       knex
@@ -51,11 +52,18 @@ export const getPitSummary = async (knex: Knex, raceId: number, raceSummaryId: n
     return null;
   }
 
+
   const avg = moment(pitSummary.average);
   pitSummary.average = avg.format("ss.SSS");
 
   const total = moment(pitSummary.totalTime);
   pitSummary.totalTime = total.format("mm:ss.SSS");
+
+  const pitStops = await knex
+    .count('*', { as: 'total_stops' })
+    .from('pit_stop')
+    .where({ 'pit_stop.pit_summary_id': pitSummary.id }).first();
+  pitSummary.totalStops = pitStops.total_stops;
 
   const fastestPitStop = await knex
     .select<PitStop>({
