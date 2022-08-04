@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import List
 
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float, Interval, DateTime
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float, Interval, DateTime, Boolean
 from sqlalchemy.orm import Session, declarative_base, relationship
 
 Base = declarative_base()
@@ -78,6 +78,8 @@ class DriverRaceSummary(Base):
     wins = Column(Integer, default=0)
     podiums = Column(Integer, default=0)
     laps_completed = Column(Integer)
+
+    qa_done = Column(Boolean)
 
     driver_id = Column(String, ForeignKey("driver.driver_id"))
     race_id = Column(Integer, ForeignKey("race.id"))
