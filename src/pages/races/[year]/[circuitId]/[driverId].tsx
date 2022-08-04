@@ -107,6 +107,7 @@ export default function DriverRace({
   pitSummary,
   overtakeSummary,
 }: DriverRaceSummaryProps) {
+  const showSocial = true;
   return (
     <div className="w-[1200px] h-[1200px] p-4 bg-oxfordBlue text-eggshell">
       <div className="flex flex-col gap-10">
@@ -144,6 +145,7 @@ export default function DriverRace({
           </div>
         </div>
 
+        {/* sliders */}
         <div className="grid px-16 grid-cols-2 gap-y-20 gap-x-16">
           <Stats.Slider
             name="Fastest Lap"
@@ -192,6 +194,25 @@ export default function DriverRace({
             totalParticipants={TOTAL_PARTICIPANTS}
           />
         </div>
+
+        {/* footer */}
+        {showSocial && (
+          <div className="flex flex-row gap-2 place-content-end mt-4 pr-14">
+            <Image
+              src="/social/twitter.svg"
+              alt="twitter-icon"
+              width={24}
+              height={24}
+            />
+            <Image
+              src="/social/instagram.svg"
+              alt="twitter-icon"
+              width={24}
+              height={24}
+            />
+            <p className="text-2xl font-thin">@formula_crunch</p>
+          </div>
+        )}
       </div>
     </div>
   );
