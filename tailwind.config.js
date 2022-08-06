@@ -12,7 +12,10 @@ module.exports = {
         gold: "#ffd700",
         silver: "#c0c0c0",
         bronze: "#CD7F32",
-        neutral: "b7b7b7",
+        neutral: "#b7b7b7",
+
+        // team colors
+        mclaren: "#ffab00",
       },
       boxShadow: {
         slider: "0 0px 5px 1px rgba(255,255,255,0.5)",

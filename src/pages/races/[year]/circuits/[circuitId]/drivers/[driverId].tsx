@@ -1,9 +1,9 @@
 import { GetStaticProps } from "next";
-import { getConnection } from "../../../../libs/knex";
+import { getConnection } from "libs/knex";
 import Image from "next/image";
 
-import Driver from "../../../../components/Driver";
-import Stats from "../../../../components/Stats";
+import Driver from "components/Driver";
+import Stats from "components/Stats";
 import {
   getRace,
   getDriver,
@@ -11,7 +11,7 @@ import {
   getRaceSummary,
   getPitSummary,
   getOvertakeSummary,
-} from "../../../../libs/db";
+} from "libs/db";
 import type {
   Driver as DriverType,
   LapSummary,
@@ -19,7 +19,7 @@ import type {
   Race,
   PitSummary,
   OvertakeSummary,
-} from "../../../../libs/db";
+} from "libs/db";
 
 interface DriverRaceSummaryProps {
   driver: DriverType;
@@ -149,15 +149,15 @@ export default function DriverRace({
         <div className="grid px-16 grid-cols-2 gap-y-20 gap-x-16">
           <Stats.Slider
             name="Fastest Lap"
-            value={lapSummary.fastestLapTime}
-            subtext={`Lap ${lapSummary.fastestLap}`}
-            rank={lapSummary.fastestLapRank}
+            value={lapSummary?.fastestLapTime ?? "N/A"}
+            subtext={lapSummary ? `Lap ${lapSummary.fastestLap}` : undefined}
+            rank={lapSummary?.fastestLapRank ?? TOTAL_PARTICIPANTS}
             totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
             name="Average Pace"
-            value={lapSummary.averageTime}
-            rank={lapSummary.averageTimeRank}
+            value={lapSummary?.averageTime ?? "N/A"}
+            rank={lapSummary?.averageTimeRank ?? TOTAL_PARTICIPANTS}
             totalParticipants={TOTAL_PARTICIPANTS}
           />
           <Stats.Slider
@@ -188,9 +188,9 @@ export default function DriverRace({
           />
           <Stats.Slider
             name="Average Speed"
-            value={lapSummary.averageSpeed}
+            value={lapSummary?.averageSpeed ?? "N/A"}
             subtext="kmh"
-            rank={lapSummary.averageSpeedRank}
+            rank={lapSummary?.averageSpeedRank ?? TOTAL_PARTICIPANTS}
             totalParticipants={TOTAL_PARTICIPANTS}
           />
         </div>

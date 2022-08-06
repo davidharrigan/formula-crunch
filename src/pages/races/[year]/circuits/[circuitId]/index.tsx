@@ -1,5 +1,5 @@
 import { GetStaticProps } from "next";
-import { getConnection } from "../../../../libs/knex";
+import { getConnection } from "libs/knex";
 
 export async function getStaticPaths() {
   const knex = getConnection();
@@ -54,7 +54,7 @@ export default function Drivers({ summaries, year, circuitId }: DriversProps) {
           <li key={s.driverRaceSummaryId}>
             <a
               className="hover:text-sky-400"
-              href={`/races/${year}/${circuitId}/${s.driverId}`}
+              href={`/races/${year}/circuits/${circuitId}/drivers/${s.driverId}`}
             >
               {s.firstName} {s.lastName}
             </a>
