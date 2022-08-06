@@ -106,6 +106,9 @@ def get_driver_overtakes(
 
     df = pd.DataFrame(overtakes)
 
+    if df.empty:
+        return df
+
     # filter null lap numbers
     df = df[~df["LapNumber"].isnull()]
 

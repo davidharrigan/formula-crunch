@@ -9,7 +9,9 @@ from scrape.core import Session
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def create_fastest_lap_gear_plot(session: Session, year: int, circuit_id: str, driver_id: str):
+def create_fastest_lap_gear_plot(
+    session: Session, year: int, circuit_id: str, driver_number: str, driver_id: str
+):
     directory = os.path.join(ROOT_DIR, "..", "public", "gear-plots", str(year), circuit_id)
     filename = os.path.join(directory, f"{driver_id}.svg")
 
@@ -19,7 +21,7 @@ def create_fastest_lap_gear_plot(session: Session, year: int, circuit_id: str, d
     if os.path.exists(filename):
         return
 
-    lap = session.laps.pick_fastest()
+    lap = session.laps.pick_driver(driver_number).pick_fastest()
     tel = lap.get_telemetry()
 
     color = "#F1E9DA"

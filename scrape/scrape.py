@@ -45,6 +45,7 @@ def scrape_race_data(tx: Session, event, year):
     session.load(telemetry=True, laps=True, weather=False)
 
     drivers = get_drivers(year).query("DriverNumber == @session.drivers")
+    print(session.event["Location"], session.event.Country)
     circuit = (
         tx.query(model.Circuit)
         .filter_by(locality=session.event["Location"], country=session.event["Country"])
@@ -77,9 +78,10 @@ def scrape_race_data(tx: Session, event, year):
         tx.commit()
 
         # lap summary
-        series = get_one_from_df(lap_summary, f'DriverNumber == "{driver_number}"').drop(
-            labels="DriverNumber"
-        )
+        series = get_one_from_df(lap_summary, f'DriverNumber == "{driver_number}"')
+        if series.empty:
+            continue
+        series = series.drop(labels="DriverNumber")
         model.LapSummary.get_or_create(
             tx, driver_race_summary_id=driver_summary.id, **to_db_fields(series)
         )
@@ -116,7 +118,7 @@ def scrape_race_data(tx: Session, event, year):
             )
 
         # gear shifts
-        create_fastest_lap_gear_plot(session, race.year, race.circuit_id, driver_id)
+        create_fastest_lap_gear_plot(session, race.year, race.circuit_id, driver_number, driver_id)
 
     logging.info("done!")
 

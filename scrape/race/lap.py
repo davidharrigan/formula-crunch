@@ -16,7 +16,9 @@ def get_lap_summary(session: Session) -> pd.DataFrame:
         fastest speed trap
     """
     df = session.laps.query('PitOutTime == "" and PitInTime == ""')
+    df = df[~df["LapTime"].isnull()]
     gb = df.groupby("DriverNumber")
+
     time = (
         gb.agg(
             minidx=("LapTime", "idxmin"),
