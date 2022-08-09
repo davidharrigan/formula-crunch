@@ -24,12 +24,6 @@ type TrackMap = {
   Y: number;
 };
 
-interface TrackMapProps {
-  color: string;
-  driverData: DriverData[];
-  telemetryOverlay?: "none" | "fastest";
-}
-
 const pickTelemetryAtDistance = (
   distance: number,
   data: Telemetry[]
@@ -76,12 +70,19 @@ const pickFastest = (drivers: DriverData[]): DriverTelemetry[] => {
   return tel;
 };
 
-// TODO: maybe use groups?
+interface TrackMapProps {
+  color: string;
+  driverData: DriverData[];
+  telemetryOverlay?: "none" | "fastest";
+}
+
 export const TrackMap = (props: TrackMapProps) => {
   const ref = useRef(null);
   const dimensions = useRefDimensions(ref);
   const svgRef = useRef(null);
   const map = props.driverData[0].data;
+
+  const [mx, my] = [14, 14];
 
   // x scale bounds
   const xScale = useMemo(() => {
@@ -91,7 +92,7 @@ export const TrackMap = (props: TrackMapProps) => {
     return d3
       .scaleLinear()
       .domain([xMin ?? 0, xMax ?? 0])
-      .range([10, dimensions.width - 10]);
+      .range([mx, dimensions.width - mx]);
   }, [map, dimensions.width]);
 
   // y scale bounds
@@ -100,7 +101,7 @@ export const TrackMap = (props: TrackMapProps) => {
     return d3
       .scaleLinear()
       .domain([yMin ?? 0, yMax ?? 0])
-      .range([dimensions.height - 10, 10]);
+      .range([dimensions.height - my, my]);
   }, [map, dimensions.height]);
 
   // draw when scales have changed
@@ -147,7 +148,7 @@ export const TrackMap = (props: TrackMapProps) => {
   const drawFastestOverlay = (drivers: DriverData[]) => {
     const fastest = pickFastest(drivers);
 
-    drivers.forEach((driver) => {
+    drivers.forEach((driver, driverIdx) => {
       const data = fastest.map((d) =>
         d.Code === driver.driverCode ? d : null
       );
@@ -189,9 +190,27 @@ export const TrackMap = (props: TrackMapProps) => {
         .attr("fill", "none")
         .attr("stroke", driver.driverColor)
         .attr("stroke-width", 8)
+        .attr("shape-rendering", "geometricPrecision");
+
+      const legend = d3.select(svgRef.current);
+      const margin = 22;
+      const radius = 6;
+      const x = mx;
+      const y = dimensions.height - my - driverIdx * margin;
+      legend
+        .append("circle")
+        .attr("cx", x)
+        .attr("cy", y - 5)
+        .attr("r", radius)
         .attr("shape-rendering", "geometricPrecision")
-        .exit()
-        .remove();
+        .style("fill", driver.driverColor);
+      legend
+        .append("text")
+        .attr("x", x + radius + 10)
+        .attr("y", y)
+        .style("fill", driver.driverColor)
+        .text(`${driver.driverCode} is faster`)
+        .style("alignment-baseline", "middle");
     });
   };
 
