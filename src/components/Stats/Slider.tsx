@@ -8,7 +8,7 @@ interface SliderProps {
   totalParticipants: number;
 }
 
-const Slider = (props: SliderProps) => {
+export const Slider = (props: SliderProps) => {
   const rankPercent =
     ((props.totalParticipants - props.rank) / (props.totalParticipants - 1)) *
     100;
@@ -62,5 +62,3 @@ const Slider = (props: SliderProps) => {
     </div>
   );
 };
-
-export default Slider;

@@ -20,7 +20,7 @@ const compoundMap = {
   },
 };
 
-const Tire = ({ compound, laps }: TireProps) => {
+export const Tire = ({ compound, laps }: TireProps) => {
   const altSrc = compoundMap[compound];
 
   return (
@@ -32,5 +32,3 @@ const Tire = ({ compound, laps }: TireProps) => {
     </div>
   );
 };
-
-export default Tire;

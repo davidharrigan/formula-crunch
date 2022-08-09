@@ -11,7 +11,11 @@ interface RaceSummaryProps {
   }[];
 }
 
-const RaceSummary = ({ startingGrid, time, tires }: RaceSummaryProps) => {
+export const RaceSummary = ({
+  startingGrid,
+  time,
+  tires,
+}: RaceSummaryProps) => {
   return (
     <div className="flex flex-col gap-10">
       <div className="grid grid-cols-2 gap-4 grid-flow-row">
@@ -33,5 +37,3 @@ const RaceSummary = ({ startingGrid, time, tires }: RaceSummaryProps) => {
     </div>
   );
 };
-
-export default RaceSummary;
