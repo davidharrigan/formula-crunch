@@ -114,7 +114,7 @@ export const CornerAnalysis = (props: CornerAnalysisProps) => {
     <div className="w-full h-full">
       <div className="bg-oldLavender">
         <p className="text-3xl px-5 py-2 mb-5 tracking-wider">
-          Corner Analysis - Turn 1
+          Corner Analysis - Turn 1 🏎️ 🏎️ 🏎️
         </p>
       </div>
       <div className="flex flex-row h-full">
