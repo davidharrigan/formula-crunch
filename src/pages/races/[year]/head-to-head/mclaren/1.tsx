@@ -3,7 +3,19 @@ import Driver from "components/Driver";
 import MclarenHeader from "components/Constructor/Header/Mclaren";
 import Stats from "components/Stats";
 
-export default function MclarenHeadToHead() {
+interface HeadToHeadProps {
+  drivers: {
+    driverId: string;
+    gridPosition: number;
+    position: number;
+    year: number;
+    date: string;
+    points: number;
+  }[];
+}
+
+export default function MclarenHeadToHead(props: HeadToHeadProps) {
+  // 2022-08-07
   const showSocial = true;
   return (
     <div className="w-[1200px] h-[1350px] bg-oxfordBlue text-eggshell">
@@ -39,66 +51,83 @@ export default function MclarenHeadToHead() {
             worst={0}
             driver1={{
               code: "RIC",
-              value: 19,
+              value: 16,
+              rank: 12,
             }}
             driver2={{
               code: "NOR",
-              value: 76,
+              value: 72,
+              rank: 7,
             }}
             leader={{
               code: "VER",
               value: 258,
             }}
           />
+        </div>
+
+        <div className="flex flex-col pt-4 px-16 gap-16">
           <Stats.ThreeBars
             title="Average Finish"
             inverse={true}
-            worst={20}
+            worst={16}
             driver1={{
               code: "RIC",
               value: 12.15,
+              rank: 13,
             }}
             driver2={{
               code: "NOR",
               value: 8.77,
+              rank: 7,
             }}
             leader={{
               code: "VER",
-              value: 1,
+              value: 4.38,
             }}
           />
+        </div>
+
+        <div className="flex flex-col pt-4 px-16 gap-16">
           <Stats.ThreeBars
             title="Average Grid"
             inverse={true}
-            worst={0}
+            worst={16}
             driver1={{
               code: "RIC",
-              value: 30,
+              value: 11.23,
+              rank: 12,
             }}
             driver2={{
               code: "NOR",
-              value: 70,
+              value: 8.23,
+              rank: 7,
             }}
             leader={{
               code: "VER",
-              value: 100,
+              value: 2.85,
             }}
           />
+        </div>
+
+        <div className="flex flex-col pt-4 px-16 gap-16">
           <Stats.ThreeBars
             title="Average Positions Gained"
-            inverse={true}
-            worst={0}
+            inverse={false}
+            worst={-4}
             driver1={{
               code: "RIC",
-              value: 30,
+              value: -0.92,
+              rank: 12,
             }}
             driver2={{
               code: "NOR",
-              value: 70,
+              value: -0.54,
+              rank: 10,
             }}
             leader={{
-              code: "VER",
-              value: 100,
+              code: "STR",
+              value: 3.15,
             }}
           />
         </div>
