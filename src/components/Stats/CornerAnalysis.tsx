@@ -108,10 +108,14 @@ export const CornerAnalysis = (props: CornerAnalysisProps) => {
     cornering: "#A1A1AA",
   };
 
+  // TODO: remove hard coded stuff here (turn / driver)
+
   return (
     <div className="w-full h-full">
       <div className="bg-oldLavender">
-        <p className="text-3xl px-5 tracking-wider">Corner Analysis - Turn 1</p>
+        <p className="text-3xl px-5 py-2 mb-5 tracking-wider">
+          Corner Analysis - Turn 1
+        </p>
       </div>
       <div className="flex flex-row h-full">
         <div className="basis-1/4 relative">
