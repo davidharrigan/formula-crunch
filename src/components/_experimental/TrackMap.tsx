@@ -1,25 +1,10 @@
 import * as d3 from "d3";
 import React, { useRef, useEffect, useState, useMemo } from "react";
-import { Dimensions, useRefDimensions } from "libs/react/dimensions";
-import { svg } from "d3";
+import { useRefDimensions } from "libs/react/dimensions";
+import type { TrackData, DriverData, Telemetry } from "libs/types";
 
-interface DriverData {
-  driverCode: string;
-  driverColor: string;
-  data: Telemetry[];
-}
-
-type DriverTelemetry = Partial<Telemetry> &
-  TrackMap & {
-    Code?: string;
-  };
-
-type Telemetry = TrackMap & {
-  Speed: number;
-  Distance: number;
-};
-
-type TrackMap = {
+type DriverTelemetry = Partial<Telemetry> & {
+  Code?: string;
   X: number;
   Y: number;
 };
@@ -93,7 +78,7 @@ export const TrackMap = (props: TrackMapProps) => {
       .scaleLinear()
       .domain([xMin ?? 0, xMax ?? 0])
       .range([mx, dimensions.width - mx]);
-  }, [map, dimensions.width]);
+  }, [map, dimensions.width, mx]);
 
   // y scale bounds
   const yScale = useMemo(() => {
@@ -102,14 +87,13 @@ export const TrackMap = (props: TrackMapProps) => {
       .scaleLinear()
       .domain([yMin ?? 0, yMax ?? 0])
       .range([dimensions.height - my, my]);
-  }, [map, dimensions.height]);
+  }, [map, dimensions.height, my]);
 
   // draw when scales have changed
   useEffect(() => {
     if (!xScale || !yScale) {
       return;
     }
-    console.log("draw!");
 
     d3.select(svgRef.current).selectAll("*").remove();
     drawMap(map);
@@ -120,11 +104,11 @@ export const TrackMap = (props: TrackMapProps) => {
   }, [props, xScale, yScale]);
 
   // draw track map
-  const drawMap = (map: TrackMap[]) => {
+  const drawMap = (map: TrackData[]) => {
     const g = d3
       .select(svgRef.current)
       .selectAll(".track-map")
-      .data<TrackMap[]>([map])
+      .data<TrackData[]>([map])
       .enter()
       .append("g")
       .attr("class", "track-map");
@@ -133,7 +117,7 @@ export const TrackMap = (props: TrackMapProps) => {
       .attr(
         "d",
         d3
-          .line<TrackMap>()
+          .line<TrackData>()
           .x((d) => xScale(d.X))
           .y((d) => yScale(d.Y))
       )
