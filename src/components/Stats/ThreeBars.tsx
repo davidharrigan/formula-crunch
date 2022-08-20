@@ -15,7 +15,7 @@ interface ThreeBarsProps {
   leader: Driver;
 }
 
-const ThreeBars = ({
+export const ThreeBars = ({
   title,
   driver1,
   driver2,
@@ -88,5 +88,3 @@ const ThreeBars = ({
     </div>
   );
 };
-
-export default ThreeBars;

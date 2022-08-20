@@ -68,7 +68,7 @@ export default function MclarenHeadToHead(props: HeadToHeadProps) {
 
         <div className="flex flex-col pt-4 px-16 gap-16">
           <Stats.ThreeBars
-            title="Average Finish"
+            title="Average Finish (Race)"
             inverse={true}
             worst={16}
             driver1={{
@@ -90,7 +90,7 @@ export default function MclarenHeadToHead(props: HeadToHeadProps) {
 
         <div className="flex flex-col pt-4 px-16 gap-16">
           <Stats.ThreeBars
-            title="Average Grid"
+            title="Average Grid (Race)"
             inverse={true}
             worst={16}
             driver1={{
@@ -112,7 +112,7 @@ export default function MclarenHeadToHead(props: HeadToHeadProps) {
 
         <div className="flex flex-col pt-4 px-16 gap-16">
           <Stats.ThreeBars
-            title="Average Positions Gained"
+            title="Average Positions Gained (Race)"
             inverse={false}
             worst={-4}
             driver1={{

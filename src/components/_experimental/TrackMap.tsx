@@ -1,0 +1,210 @@
+import * as d3 from "d3";
+import React, { useRef, useEffect, useState, useMemo } from "react";
+import { useRefDimensions } from "libs/react/dimensions";
+import type { TrackData, DriverData, Telemetry } from "libs/types";
+
+type DriverTelemetry = Partial<Telemetry> & {
+  Code?: string;
+  X: number;
+  Y: number;
+};
+
+const pickTelemetryAtDistance = (
+  distance: number,
+  data: Telemetry[]
+): Telemetry | undefined => {
+  for (let i = 1; i < data.length; i++) {
+    if (data[i].Distance >= distance) {
+      // TODO: need to interpolate distance...?
+      return data[i];
+    }
+  }
+};
+
+const pickFastest = (drivers: DriverData[]): DriverTelemetry[] => {
+  const tel: DriverTelemetry[] = [];
+  const fastest = drivers[0].data.forEach((d) => {
+    const { Speed: speed, Distance: distance } = d;
+    // TODO: support more than 2 drivers?
+    const telOtherDriver = pickTelemetryAtDistance(distance, drivers[1].data);
+    const row: DriverTelemetry = {
+      X: d.X,
+      Y: d.Y,
+    };
+
+    if (telOtherDriver === undefined) {
+      tel.push(row);
+      return;
+    }
+
+    if (speed > telOtherDriver.Speed) {
+      tel.push({
+        Code: drivers[0].driverCode,
+        ...d,
+      });
+    } else if (telOtherDriver.Speed > speed) {
+      tel.push({
+        Code: drivers[1].driverCode,
+        ...telOtherDriver,
+        ...row,
+      });
+    } else {
+      tel.push(row);
+    }
+  });
+  return tel;
+};
+
+interface TrackMapProps {
+  color: string;
+  driverData: DriverData[];
+  telemetryOverlay?: "none" | "fastest";
+}
+
+export const TrackMap = (props: TrackMapProps) => {
+  const ref = useRef(null);
+  const dimensions = useRefDimensions(ref);
+  const svgRef = useRef(null);
+  const map = props.driverData[0].data;
+
+  const [mx, my] = [14, 14];
+
+  // x scale bounds
+  const xScale = useMemo(() => {
+    const [xMin, xMax] = d3.extent(map, (m) => {
+      return m.X;
+    });
+    return d3
+      .scaleLinear()
+      .domain([xMin ?? 0, xMax ?? 0])
+      .range([mx, dimensions.width - mx]);
+  }, [map, dimensions.width, mx]);
+
+  // y scale bounds
+  const yScale = useMemo(() => {
+    const [yMin, yMax] = d3.extent(map, (m) => m.Y);
+    return d3
+      .scaleLinear()
+      .domain([yMin ?? 0, yMax ?? 0])
+      .range([dimensions.height - my, my]);
+  }, [map, dimensions.height, my]);
+
+  // draw when scales have changed
+  useEffect(() => {
+    if (!xScale || !yScale) {
+      return;
+    }
+
+    d3.select(svgRef.current).selectAll("*").remove();
+    drawMap(map);
+
+    if (props.telemetryOverlay === "fastest") {
+      drawFastestOverlay(props.driverData);
+    }
+  }, [props, xScale, yScale]);
+
+  // draw track map
+  const drawMap = (map: TrackData[]) => {
+    const g = d3
+      .select(svgRef.current)
+      .selectAll(".track-map")
+      .data<TrackData[]>([map])
+      .enter()
+      .append("g")
+      .attr("class", "track-map");
+
+    g.append("path")
+      .attr(
+        "d",
+        d3
+          .line<TrackData>()
+          .x((d) => xScale(d.X))
+          .y((d) => yScale(d.Y))
+      )
+      .attr("fill", "none")
+      .attr("stroke", props.color)
+      .attr("shape-rendering", "gerometricPrecision")
+      .attr("stroke-width", 12)
+      .exit()
+      .remove();
+  };
+
+  const drawFastestOverlay = (drivers: DriverData[]) => {
+    const fastest = pickFastest(drivers);
+
+    drivers.forEach((driver, driverIdx) => {
+      const data = fastest.map((d) =>
+        d.Code === driver.driverCode ? d : null
+      );
+
+      const terminated: DriverTelemetry[][] = [[]];
+      let idx = 0;
+      let prevNull = true;
+      data.forEach((d) => {
+        if (d === null) {
+          if (!prevNull) {
+            idx++;
+          }
+          prevNull = true;
+          return;
+        }
+        if (terminated.length === idx) {
+          terminated.push([]);
+        }
+        prevNull = false;
+        terminated[idx].push(d);
+      });
+
+      const g = d3
+        .select(svgRef.current)
+        .selectAll(`.fastest-overlay-${driver.driverCode}`)
+        .data<DriverTelemetry[]>(terminated)
+        .enter()
+        .append("g")
+        .attr("class", `fastest-overlay-${driver.driverCode}`);
+
+      g.append("path")
+        .attr(
+          "d",
+          d3
+            .line<DriverTelemetry>()
+            .x((d) => xScale(d.X))
+            .y((d) => yScale(d.Y))
+        )
+        .attr("fill", "none")
+        .attr("stroke", driver.driverColor)
+        .attr("stroke-width", 8)
+        .attr("shape-rendering", "geometricPrecision");
+
+      const legend = d3.select(svgRef.current);
+      const margin = 22;
+      const radius = 6;
+      const x = mx;
+      const y = dimensions.height - my - driverIdx * margin;
+      legend
+        .append("circle")
+        .attr("cx", x)
+        .attr("cy", y - 5)
+        .attr("r", radius)
+        .attr("shape-rendering", "geometricPrecision")
+        .style("fill", driver.driverColor);
+      legend
+        .append("text")
+        .attr("x", x + radius + 10)
+        .attr("y", y)
+        .style("fill", driver.driverColor)
+        .text(`${driver.driverCode} is faster`)
+        .style("alignment-baseline", "middle");
+    });
+  };
+
+  return (
+    <div ref={ref} className="h-full w-full">
+      <svg width="100%" height="100%" ref={svgRef}></svg>
+    </div>
+  );
+};
+
+TrackMap.defaultProps = {
+  telemetryOverlay: "none",
+};
