@@ -103,7 +103,9 @@ def to_db_fields(data: pd.Series) -> dict:
     ret = {}
     for k, v in data.items():
         value = v
-        if "numpy" in str(type(v)):
+        if pd.isnull(v):
+            value = None
+        elif "numpy" in str(type(v)):
             value = value.item()
         elif isinstance(v, pd.Timedelta):
             value = v.to_pytimedelta()

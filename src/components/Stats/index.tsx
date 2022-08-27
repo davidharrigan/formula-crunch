@@ -1,15 +1,15 @@
 import Slider from "./Slider";
-import RaceSummary from "./RaceSummary";
 import ThreeBars from "./ThreeBars";
 import { TrackMap } from "./TrackMap";
 import { CornerAnalysis } from "./CornerAnalysis";
+import { StintSummary } from "./StintSummary";
 
 const exports = {
   Slider,
-  RaceSummary,
   ThreeBars,
   TrackMap,
   CornerAnalysis,
+  StintSummary,
 };
 
 export default exports;

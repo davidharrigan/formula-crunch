@@ -11,6 +11,7 @@ import {
   getRaceSummary,
   getPitSummary,
   getOvertakeSummary,
+  getStintSummary,
 } from "libs/db";
 import type {
   Driver as DriverType,
@@ -19,6 +20,7 @@ import type {
   Race,
   PitSummary,
   OvertakeSummary,
+  StintSummary,
 } from "libs/db";
 
 interface DriverRaceSummaryProps {
@@ -28,6 +30,7 @@ interface DriverRaceSummaryProps {
   lapSummary: LapSummary;
   pitSummary: PitSummary;
   overtakeSummary: OvertakeSummary;
+  stintSummaries: StintSummary[];
 }
 
 const TOTAL_PARTICIPANTS = 20;
@@ -78,14 +81,21 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     };
   }
 
-  const [race, driver, lapSummary, pitSummary, overtakeSummary] =
-    await Promise.all([
-      getRace(knex, raceSummary.raceId),
-      getDriver(knex, raceSummary.driverId),
-      getLapSummary(knex, raceSummary.raceId, raceSummary.id),
-      getPitSummary(knex, raceSummary.raceId, raceSummary.id),
-      getOvertakeSummary(knex, raceSummary.raceId, raceSummary.id),
-    ]);
+  const [
+    race,
+    driver,
+    lapSummary,
+    pitSummary,
+    overtakeSummary,
+    stintSummaries,
+  ] = await Promise.all([
+    getRace(knex, raceSummary.raceId),
+    getDriver(knex, raceSummary.driverId),
+    getLapSummary(knex, raceSummary.raceId, raceSummary.id),
+    getPitSummary(knex, raceSummary.raceId, raceSummary.id),
+    getOvertakeSummary(knex, raceSummary.raceId, raceSummary.id),
+    getStintSummary(knex, raceSummary.id),
+  ]);
 
   return {
     props: {
@@ -95,6 +105,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       lapSummary,
       pitSummary,
       overtakeSummary,
+      stintSummaries,
     },
   };
 };
@@ -106,12 +117,13 @@ export default function DriverRace({
   lapSummary,
   pitSummary,
   overtakeSummary,
+  stintSummaries,
 }: DriverRaceSummaryProps) {
   const showSocial = true;
   return (
     <div className="w-[1200px] h-[1200px] p-4 bg-oxfordBlue text-eggshell">
-      <div className="flex flex-col gap-10">
-        <div className="flex flex-row">
+      <div className="flex flex-col">
+        <div className="flex flex-row h-[500px]">
           <div className="basis-1/2 pt-4">
             <Driver.Result
               name={`${driver.firstName} ${driver.lastName}`}
@@ -130,23 +142,13 @@ export default function DriverRace({
               lapsCompleted={raceSummary.lapsCompleted}
             />
           </div>
-          <div className="basis-1/2 p-3 mt-16">
-            <p className="pl-8 text-bold text-cyberYellow text-2xl">
-              Fastest Lap Gear Shifts
-            </p>
-            <div>
-              <Image
-                src={`/gear-plots/${race.year}/${race.circuitId}/${driver.driverId}.svg`}
-                alt={`Gear shifts ${race.year} ${race.eventName} ${driver.driverId}`}
-                width={560}
-                height={350}
-              />
-            </div>
+          <div className="basis-1/2 p-3 mt-16 pl-20">
+            <Stats.StintSummary stints={stintSummaries} />
           </div>
         </div>
 
         {/* sliders */}
-        <div className="grid px-16 grid-cols-2 gap-y-20 gap-x-16">
+        <div className="grid px-16 grid-cols-2 gap-y-20 gap-x-16 h-[550px]">
           <Stats.Slider
             name="Fastest Lap"
             value={lapSummary?.fastestLapTime ?? "N/A"}
@@ -197,7 +199,7 @@ export default function DriverRace({
 
         {/* footer */}
         {showSocial && (
-          <div className="flex flex-row gap-2 place-content-end mt-4 pr-14">
+          <div className="flex flex-row gap-2 place-content-end mt-16 pr-14">
             <Image
               src="/social/twitter.svg"
               alt="twitter-icon"
