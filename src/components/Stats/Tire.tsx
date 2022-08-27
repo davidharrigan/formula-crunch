@@ -1,35 +1,39 @@
 import Image from "next/image";
 
 interface TireProps {
-  compound: "soft" | "medium" | "hard";
-  laps: number;
+  compound: "WET" | "INTERMEDIATE" | "SOFT" | "MEDIUM" | "HARD";
+  height: number;
+  width: number;
 }
 
 const compoundMap = {
-  soft: {
+  SOFT: {
     alt: "soft-tyre",
     src: "/tires/soft.svg",
   },
-  medium: {
+  MEDIUM: {
     alt: "medium-tyre",
     src: "/tires/medium.svg",
   },
-  hard: {
+  HARD: {
     alt: "hard-tyre",
     src: "/tires/hard.svg",
   },
+  INTERMEDIATE: {
+    alt: "intermediate-tyre",
+    src: "/tires/intermediate.svg",
+  },
+  WET: {
+    alt: "wet-tyre",
+    src: "/tires/wet.svg",
+  },
 };
 
-const Tire = ({ compound, laps }: TireProps) => {
+const Tire = ({ compound, height = 90, width = 90 }: TireProps) => {
   const altSrc = compoundMap[compound];
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div>
-        <Image alt={altSrc.alt} width={90} height={90} src={altSrc.src} />
-      </div>
-      <div className="text-xl">{laps}</div>
-    </div>
+    <Image alt={altSrc?.alt} width={width} height={height} src={altSrc?.src} />
   );
 };
 

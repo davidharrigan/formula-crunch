@@ -93,7 +93,7 @@ const Result = (props: ResultProps) => {
                   {positionGained < 0 && (
                     <p className="text-red-500">
                       <ChevronDoubleDownIcon className="inline-block h-10 w-10 pb-1 pr-1" />
-                      {positionGained}
+                      {positionGained * -1}
                     </p>
                   )}
                 </div>

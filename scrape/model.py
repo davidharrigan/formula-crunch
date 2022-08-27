@@ -73,6 +73,7 @@ class DriverRaceSummary(Base):
     points = Column(Integer)
     season_standing = Column(Integer)
     season_points = Column(Integer)
+    time = Column(Interval, nullable=True)
     status = Column(String)
 
     wins = Column(Integer, default=0)
@@ -150,6 +151,38 @@ class LapSummary(Base):
         ls = cls(**kwargs)
         session.add(ls)
         return ls
+
+
+class StintSummary(Base):
+    __tablename__ = "stint_summary"
+
+    id = Column(Integer, primary_key=True)
+    driver_race_summary_id = Column(Integer, ForeignKey("driver_race_summary.id"))
+
+    stint = Column(Integer)
+    average_time: timedelta = Column(Interval)
+    fastest_lap = Column(Integer)
+    fastest_lap_time = Column(Interval)
+    lap_count = Column(Integer)
+    compound = Column(String)
+
+    @classmethod
+    def upsert(cls, session: Session, **kwargs) -> DriverRaceSummary:
+        ss = (
+            session.query(cls)
+            .filter_by(
+                driver_race_summary_id=kwargs["driver_race_summary_id"], stint=kwargs["stint"]
+            )
+            .one_or_none()
+        )
+        if ss:
+            for k, v in kwargs.items():
+                setattr(ss, k, v)
+            return ss
+        else:
+            ss = cls(**kwargs)
+            session.add(ss)
+            return ss
 
 
 class PitSummary(Base):

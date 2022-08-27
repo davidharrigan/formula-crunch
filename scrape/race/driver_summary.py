@@ -16,6 +16,7 @@ def get_driver_summary(session: Session) -> pd.DataFrame:
             "GridPosition",
             "Status",
             "Points",
+            "Time",
         ]
     ]
 
