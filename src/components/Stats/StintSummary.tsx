@@ -9,10 +9,9 @@ interface StintSummaryProps {
 }
 
 export const StintSummary = (props: StintSummaryProps) => {
-  // <Tire key={idx} compound={t.compound} laps={t.laps} />
   return (
     <div className="flex flex-col gap-3 w-full h-full">
-      <div className="flex flex-row w-full font-bold text-3xl tracking-wide pb-3">
+      <div className="flex flex-row w-full font-bold text-3xl tracking-wide pb-1">
         <div className="basis-1/5 text-oldLavender">Stint</div>
         <div className="basis-2/5 text-oldLavender">Pace</div>
         <div className="basis-2/5 text-oldLavender">Laps</div>

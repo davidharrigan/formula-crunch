@@ -143,6 +143,12 @@ export default function DriverRace({
             />
           </div>
           <div className="basis-1/2 p-3 mt-16 pl-20">
+            <div className="mb-12">
+              <Stats.TotalTime
+                time={raceSummary.time}
+                status={raceSummary.status}
+              />
+            </div>
             <Stats.StintSummary stints={stintSummaries} />
           </div>
         </div>
