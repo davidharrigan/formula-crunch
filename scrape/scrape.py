@@ -128,6 +128,7 @@ def scrape_race_data(tx: Session, event, year):
                 driver_race_summary_id=driver_summary.id,
                 **to_db_fields(o.drop(labels=["DriverNumberAgainst", "DriverNumber"])),
             )
+        tx.commit()
 
         # gear shifts
         create_fastest_lap_gear_plot(session, race.year, race.circuit_id, driver_number, driver_id)

@@ -37,7 +37,11 @@ const getPlaceColor = (place: number): string => {
 };
 
 const Result = (props: ResultProps) => {
-  const positionGained = props.gridPosition - props.place;
+  const gridPosition = props.gridPosition === 0 ? "Pit" : props.gridPosition;
+  const positionGained =
+    props.gridPosition === 0
+      ? 20 - props.place
+      : props.gridPosition - props.place;
   const finishedRace =
     !props.status ||
     props.status === "Finished" ||
@@ -99,9 +103,10 @@ const Result = (props: ResultProps) => {
                 </div>
                 <p className="text-slate-500 font-bold">
                   Started{" "}
-                  <span className="ordinal">
-                    {getOrdinal(props.gridPosition)}
-                  </span>
+                  {gridPosition === "Pit" && <span>{gridPosition}</span>}
+                  {gridPosition !== "Pit" && (
+                    <span className="ordinal">{getOrdinal(gridPosition)}</span>
+                  )}
                 </p>
               </div>
             </div>
