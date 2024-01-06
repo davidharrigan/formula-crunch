@@ -1,5 +1,17 @@
 # formula-crunch
 
+`formula-crunch` is an experiment with the [FastF1](https://docs.fastf1.dev/)
+Python API to analyze Formula1 driver performance during a race.
+
+The `manage.py` Python script can scrape race data, perform analysis, and store
+the result in a SQLite database. Next.js uses the SQLite database to generate
+interesting graphics as static pages, so the results can be made available as a
+website without any data storage dependency (although the generated graphics are
+sized to be suitable for sharing on social media sites).
+
+See an example
+[here](https://formula-cunch.vercel.app/races/2022/circuits/spa/drivers/leclerc).
+
 ## Scrape data
 
 Scrape driver data
